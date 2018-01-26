@@ -42,7 +42,7 @@ func (r *Remote) Post(url string, req interface{}, ret interface{}) error {
 	bs, _ := json.Marshal(req)
 	payload := bytes.NewReader(bs)
 
-	bs, err := r.call("POST", url, payload)
+	bs, err := r.Call("POST", url, payload)
 	if err != nil {
 		return err
 	}
@@ -53,7 +53,7 @@ func (r *Remote) Post(url string, req interface{}, ret interface{}) error {
 // Get for get request
 func (r *Remote) Get(url string, req interface{}, ret interface{}) error {
 	url = url + "?" + mapToURLValues(req).Encode()
-	bs, err := r.call("GET", url, nil)
+	bs, err := r.Call("GET", url, nil)
 	if err != nil {
 		return err
 	}
@@ -76,8 +76,8 @@ func (r *Remote) BufferGet(url string, req interface{}, ret interface{}) error {
 	return res
 }
 
-// call for call
-func (r *Remote) call(method, url string, payload io.Reader) ([]byte, error) {
+// Call for call
+func (r *Remote) Call(method, url string, payload io.Reader) ([]byte, error) {
 	var body = []byte{}
 	req, _ := http.NewRequest(method, r.host+url, payload)
 	req.Header.Add("content-type", "application/json")
