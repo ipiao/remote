@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
-	"path"
 	"time"
 
 	"github.com/ipiao/metools/cache"
@@ -70,19 +70,23 @@ func (r *MicroRPCRemote) Host() string {
 
 // URL return the url
 func (r *MicroRPCRemote) URL() string {
-	return path.Join(r.host, r.path)
+	return r.host + r.path
 }
 
 // Post for post request
 func (r *MicroRPCRemote) Post(req *MicroRPCRequest, ret interface{}) error {
-	bs, _ := json.Marshal(req)
-	payload := bytes.NewReader(bs)
-
-	bs, err := r.call("POST", payload)
+	bs, err := json.Marshal(req)
 	if err != nil {
 		return err
 	}
-	err = DeJSON(bs, ret)
+	payload := bytes.NewReader(bs)
+
+	bs1, err1 := r.call("POST", payload)
+	if err1 != nil {
+		return err1
+	}
+	log.Print(string(bs1))
+	err = DeJSON(bs1, ret)
 	return err
 }
 
@@ -104,7 +108,10 @@ func (r *MicroRPCRemote) BufferPost(req *MicroRPCRequest, ret interface{}) error
 // call for call
 func (r *MicroRPCRemote) call(method string, payload io.Reader) ([]byte, error) {
 	var body = []byte{}
-	req, _ := http.NewRequest(method, r.URL(), payload)
+	req, err := http.NewRequest(method, r.URL(), payload)
+	if err != nil {
+		return body, err
+	}
 	req.Header.Add("content-type", "application/json")
 
 	client := http.Client{
@@ -112,7 +119,7 @@ func (r *MicroRPCRemote) call(method string, payload io.Reader) ([]byte, error) 
 	}
 	res, err := client.Do(req)
 	if err != nil {
-		return body, ErrRequestCall
+		return body, err
 	}
 	defer res.Body.Close()
 	if res.StatusCode == http.StatusGatewayTimeout {
