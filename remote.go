@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -14,13 +15,14 @@ import (
 	"github.com/ipiao/metools/cache"
 )
 
-var defaultTimeOut = time.Second * 5
+var defaultTimeOut = time.Second * 30
 
 // Remote for http call
 type Remote struct {
 	host        string
 	dataBuffers *cache.DataBuffer
 	TimeOut     time.Duration
+	cli         *http.Client
 }
 
 // NewRemote return a remote
@@ -29,6 +31,19 @@ func NewRemote(host string) *Remote {
 		host:        host,
 		dataBuffers: cache.NewDataBuffer(500),
 		TimeOut:     defaultTimeOut,
+		cli: &http.Client{
+			Transport: &http.Transport{
+				Dial: func(netw, addr string) (net.Conn, error) {
+					c, err := net.DialTimeout(netw, addr, defaultTimeOut)
+					if err != nil {
+						return nil, err
+					}
+					return c, nil
+				},
+				MaxIdleConns:    10,
+				IdleConnTimeout: defaultTimeOut * 2,
+			},
+		},
 	}
 }
 
@@ -81,10 +96,8 @@ func (r *Remote) Call(method, url string, payload io.Reader) ([]byte, error) {
 	var body = []byte{}
 	req, _ := http.NewRequest(method, r.host+url, payload)
 	req.Header.Add("content-type", "application/json")
-	client := http.Client{
-		Timeout: r.TimeOut,
-	}
-	res, err := client.Do(req)
+
+	res, err := r.cli.Do(req)
 	if err != nil {
 		return body, ErrRequestCall
 	}

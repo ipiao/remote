@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 	"time"
 
@@ -20,6 +21,7 @@ type MicroRPCRemote struct {
 	dataBuffers *cache.DataBuffer
 	service     string
 	TimeOut     time.Duration
+	cli         *http.Client
 }
 
 // MicroRPCRequest 调用microRPC的格式结构
@@ -60,6 +62,19 @@ func NewMicroRPCRemote(host, path, service string) *MicroRPCRemote {
 		service:     service,
 		dataBuffers: cache.NewDataBuffer(500),
 		TimeOut:     defaultTimeOut,
+		cli: &http.Client{
+			Transport: &http.Transport{
+				Dial: func(netw, addr string) (net.Conn, error) {
+					c, err := net.DialTimeout(netw, addr, defaultTimeOut)
+					if err != nil {
+						return nil, err
+					}
+					return c, nil
+				},
+				MaxIdleConns:    10,
+				IdleConnTimeout: defaultTimeOut * 2,
+			},
+		},
 	}
 }
 
@@ -114,10 +129,7 @@ func (r *MicroRPCRemote) call(method string, payload io.Reader) ([]byte, error) 
 	}
 	req.Header.Add("content-type", "application/json")
 
-	client := http.Client{
-		Timeout: r.TimeOut,
-	}
-	res, err := client.Do(req)
+	res, err := r.cli.Do(req)
 	if err != nil {
 		return body, err
 	}
