@@ -39,6 +39,7 @@ type ProxyRemoteStore struct {
 	host    string
 	store   Ipstore
 	remotes chan *Remote
+	size    int
 }
 
 // NewProxyRemoteStore creat
@@ -52,6 +53,7 @@ func NewProxyRemoteStore(host string, size int, store Ipstore) (*ProxyRemoteStor
 		host:    host,
 		store:   store,
 		remotes: make(chan *Remote, size*2),
+		size:    size,
 	}
 
 	for i := 0; i < size; i++ {
@@ -66,15 +68,23 @@ func NewProxyRemoteStore(host string, size int, store Ipstore) (*ProxyRemoteStor
 
 // Get one
 func (rs *ProxyRemoteStore) Get() (*Remote, error) {
+	if rs.size == 0 {
+		return rs.New()
+	}
 	select {
 	case r := <-rs.remotes:
 		return r, nil
 	case <-time.After(time.Millisecond * 5):
-		proxy, err := rs.store.GetHost()
-		if err != nil {
-			return nil, err
-		}
-		remote := NewProxyRemote(rs.host, proxy)
-		return remote, nil
+		return rs.New()
 	}
+}
+
+// New create one
+func (rs *ProxyRemoteStore) New() (*Remote, error) {
+	proxy, err := rs.store.GetHost()
+	if err != nil {
+		return nil, err
+	}
+	remote := NewProxyRemote(rs.host, proxy)
+	return remote, nil
 }
