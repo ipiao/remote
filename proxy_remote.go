@@ -39,10 +39,11 @@ type RedisIPStore struct {
 // Save save a info
 func (s *RedisIPStore) Save(info *ProxyInfo) error {
 	info.Protocol = strings.ToLower(info.Protocol)
-	infoStr, err := EnJSON(info)
+	infoBytes, err := EnJSON(info)
 	if err != nil {
 		return err
 	}
+	infoStr := string(infoBytes)
 	_, err = s.conn.Do("SADD", s.key, infoStr)
 	if err != nil {
 		return err

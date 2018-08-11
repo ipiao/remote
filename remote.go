@@ -54,10 +54,14 @@ func (r *Remote) Host() string {
 
 // Post for post request
 func (r *Remote) Post(url string, req interface{}, ret interface{}) error {
-	bs, _ := json.Marshal(req)
+
+	bs, err := EnJSON(req)
+	if err != nil {
+		return err
+	}
 	payload := bytes.NewReader(bs)
 
-	bs, err := r.Call("POST", url, payload)
+	bs, err = r.Call("POST", url, payload)
 	if err != nil {
 		return err
 	}
@@ -67,8 +71,10 @@ func (r *Remote) Post(url string, req interface{}, ret interface{}) error {
 
 // Get for get request
 func (r *Remote) Get(url string, req interface{}, ret interface{}) error {
+
 	url = url + "?" + mapToURLValues(req).Encode()
 	bs, err := r.Call("GET", url, nil)
+
 	if err != nil {
 		return err
 	}
@@ -76,11 +82,17 @@ func (r *Remote) Get(url string, req interface{}, ret interface{}) error {
 	return err
 }
 
-// Call for call
+// Call for default call
 func (r *Remote) Call(method, url string, payload io.Reader) ([]byte, error) {
-	var body = []byte{}
 	req, _ := http.NewRequest(method, r.host+url, payload)
 	req.Header.Add("content-type", "application/json")
+
+	return r.CallRequest(req)
+}
+
+// CallRequest for call http.Request
+func (r *Remote) CallRequest(req *http.Request) ([]byte, error) {
+	var body = []byte{}
 
 	res, err := r.cli.Do(req)
 	if err != nil {
@@ -130,10 +142,10 @@ func DeJSON(data []byte, v interface{}) error {
 }
 
 // EnJSON 解析成json
-func EnJSON(v interface{}) (string, error) {
-	var ret string
-	bs := bytes.NewBufferString(ret)
-	var encode = json.NewEncoder(bs)
+func EnJSON(v interface{}) ([]byte, error) {
+	var bs []byte
+	bf := bytes.NewBuffer(bs)
+	var encode = json.NewEncoder(bf)
 	err := encode.Encode(v)
-	return bs.String(), err
+	return bf.Bytes(), err
 }
