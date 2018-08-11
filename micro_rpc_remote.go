@@ -3,6 +3,7 @@ package remote
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -134,8 +135,8 @@ func (r *MicroRPCRemote) call(method string, payload io.Reader) ([]byte, error) 
 		return body, err
 	}
 	defer res.Body.Close()
-	if res.StatusCode == http.StatusGatewayTimeout {
-		return body, ErrTimeOut
+	if res.StatusCode != 200 {
+		return body, errors.New(res.Status)
 	}
 	body, err = ioutil.ReadAll(res.Body)
 	return body, err

@@ -3,6 +3,7 @@ package remote
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -11,26 +12,22 @@ import (
 	"net/url"
 	"reflect"
 	"time"
-
-	"github.com/ipiao/metools/cache"
 )
 
 var defaultTimeOut = time.Second * 30
 
 // Remote for http call
 type Remote struct {
-	host        string
-	dataBuffers *cache.DataBuffer
-	TimeOut     time.Duration
-	cli         *http.Client
+	host    string
+	TimeOut time.Duration
+	cli     *http.Client
 }
 
 // NewRemote return a remote
 func NewRemote(host string) *Remote {
 	return &Remote{
-		host:        host,
-		dataBuffers: cache.NewDataBuffer(500),
-		TimeOut:     defaultTimeOut,
+		host:    host,
+		TimeOut: defaultTimeOut,
 		cli: &http.Client{
 			Transport: &http.Transport{
 				Dial: func(netw, addr string) (net.Conn, error) {
@@ -76,21 +73,6 @@ func (r *Remote) Get(url string, req interface{}, ret interface{}) error {
 	return err
 }
 
-// BufferGet get data from buffer first
-func (r *Remote) BufferGet(url string, req interface{}, ret interface{}) error {
-	mk := getMethodKey("GET", url)
-	uk := getURLKey(req)
-	if r := r.dataBuffers.GetData(mk, uk); r != nil {
-		ret = r
-		return nil
-	}
-	res := r.Get(url, req, ret)
-	if res == nil {
-		r.dataBuffers.PutData(mk, uk, req)
-	}
-	return res
-}
-
 // Call for call
 func (r *Remote) Call(method, url string, payload io.Reader) ([]byte, error) {
 	var body = []byte{}
@@ -99,11 +81,11 @@ func (r *Remote) Call(method, url string, payload io.Reader) ([]byte, error) {
 
 	res, err := r.cli.Do(req)
 	if err != nil {
-		return body, ErrRequestCall
+		return body, err
 	}
 	defer res.Body.Close()
-	if res.StatusCode == http.StatusGatewayTimeout {
-		return body, ErrTimeOut
+	if res.StatusCode != 200 {
+		return body, errors.New(res.Status)
 	}
 	body, err = ioutil.ReadAll(res.Body)
 	return body, err
@@ -141,13 +123,4 @@ func DeJSON(data []byte, v interface{}) error {
 	var decode = json.NewDecoder(bytes.NewBuffer(data))
 	decode.UseNumber()
 	return decode.Decode(&v)
-}
-
-func getURLKey(req interface{}) string {
-	s, _ := GobEncode(req)
-	return s
-}
-
-func getMethodKey(method, url string) string {
-	return fmt.Sprintf("%s-%s", method, url)
 }
