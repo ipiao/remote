@@ -16,12 +16,18 @@ type dataBuffer interface {
 type BufferRemote struct {
 	*Remote
 	dataBuffers dataBuffer
+	timeout     time.Duration
 }
 
 // NewBufferRemote new
 func NewBufferRemote(host string) *BufferRemote {
+	return NewBufferRemoteTimeout(host, defaultTimeOut)
+}
+
+// NewBufferRemoteTimeout new
+func NewBufferRemoteTimeout(host string, timeout time.Duration) *BufferRemote {
 	remote := &BufferRemote{
-		Remote: NewRemote(host),
+		Remote: NewRemoteTimeout(host, timeout),
 	}
 	remote.dataBuffers = cache.NewDataBuffer(500)
 	return remote

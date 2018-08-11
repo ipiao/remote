@@ -14,32 +14,35 @@ import (
 	"time"
 )
 
-var defaultTimeOut = time.Second * 5
+var defaultTimeOut = time.Second * 30
 
 // Remote for http call
 type Remote struct {
-	host    string
-	TimeOut time.Duration
-	cli     *http.Client
+	host string
+	cli  *http.Client
 }
 
 // NewRemote return a remote
 func NewRemote(host string) *Remote {
+	return NewRemoteTimeout(host, defaultTimeOut)
+}
+
+// NewRemoteTimeout return a remote
+func NewRemoteTimeout(host string, timeout time.Duration) *Remote {
 	return &Remote{
-		host:    host,
-		TimeOut: defaultTimeOut,
+		host: host,
 		cli: &http.Client{
 			Transport: &http.Transport{
 				Dial: func(netw, addr string) (net.Conn, error) {
-					c, err := net.DialTimeout(netw, addr, defaultTimeOut)
+					c, err := net.DialTimeout(netw, addr, timeout) //设置建立连接超时
 					if err != nil {
 						return nil, err
 					}
+					c.SetDeadline(time.Now().Add(timeout * 2)) //设置发送接收数据超时
 					return c, nil
 				},
-				MaxIdleConns:    10,
-				IdleConnTimeout: defaultTimeOut * 2,
 			},
+			Timeout: timeout,
 		},
 	}
 }
@@ -84,6 +87,7 @@ func (r *Remote) Call(method, url string, payload io.Reader) ([]byte, error) {
 		return body, err
 	}
 	defer res.Body.Close()
+
 	if res.StatusCode != 200 {
 		return body, errors.New(res.Status)
 	}
@@ -123,4 +127,13 @@ func DeJSON(data []byte, v interface{}) error {
 	var decode = json.NewDecoder(bytes.NewBuffer(data))
 	decode.UseNumber()
 	return decode.Decode(&v)
+}
+
+// EnJSON 解析成json
+func EnJSON(v interface{}) (string, error) {
+	var ret string
+	bs := bytes.NewBufferString(ret)
+	var encode = json.NewEncoder(bs)
+	err := encode.Encode(v)
+	return bs.String(), err
 }
