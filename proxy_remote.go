@@ -2,7 +2,6 @@ package remote
 
 import (
 	"fmt"
-	"net"
 	"net/http"
 	"net/url"
 	"time"
@@ -19,16 +18,7 @@ func NewProxyRemote(host, proxy string) *Remote {
 		TimeOut: defaultTimeOut,
 		cli: &http.Client{
 			Transport: &http.Transport{
-				Dial: func(netw, addr string) (net.Conn, error) {
-					c, err := net.DialTimeout(netw, addr, defaultTimeOut)
-					if err != nil {
-						return nil, err
-					}
-					return c, nil
-				},
-				Proxy:           http.ProxyURL(proxyURL),
-				MaxIdleConns:    10,
-				IdleConnTimeout: defaultTimeOut * 2,
+				Proxy: http.ProxyURL(proxyURL),
 			},
 		},
 	}
@@ -50,10 +40,13 @@ func NewProxyRemoteStore(host string, size int, store Ipstore) (*ProxyRemoteStor
 	}
 
 	rs := &ProxyRemoteStore{
-		host:    host,
-		store:   store,
-		remotes: make(chan *Remote, size*2),
-		size:    size,
+		host:  host,
+		store: store,
+		size:  size,
+	}
+
+	if size > 0 {
+		rs.remotes = make(chan *Remote, size*2)
 	}
 
 	for i := 0; i < size; i++ {

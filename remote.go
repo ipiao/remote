@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-var defaultTimeOut = time.Second * 30
+var defaultTimeOut = time.Second * 5
 
 // Remote for http call
 type Remote struct {
