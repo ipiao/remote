@@ -120,7 +120,7 @@ func mapToURLValues(i interface{}) url.Values {
 		for k, v := range i.(map[string]interface{}) {
 			var val = reflect.ValueOf(v)
 			if val.Kind() == reflect.Struct {
-				var tmp, _ = json.Marshal(v)
+				var tmp, _ = EnJSON(v)
 				m.Set(k, string(tmp))
 			} else {
 				m.Set(k, fmt.Sprint(v))
