@@ -43,6 +43,15 @@ func NewRedisIPStore(host, pwd string, key ...string) *RedisIPStore {
 	}
 }
 
+// NewXiciRedisStore 默认key
+func NewXiciRedisStore(host, pwd string, annoymous bool) *RedisIPStore {
+	key := "ippool_xici"
+	if annoymous {
+		key = "ippool_xici_annoymous"
+	}
+	return NewRedisIPStore(host, pwd, key)
+}
+
 // Save save a info
 func (s *RedisIPStore) Save(host, info string) error {
 	_, err := s.conn.Do("SADD", s.key, host)
