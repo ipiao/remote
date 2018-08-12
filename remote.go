@@ -14,7 +14,14 @@ import (
 	"time"
 )
 
-var defaultTimeOut = time.Second * 30
+var (
+	defaultTimeOut = time.Second * 30
+	defaultHeader  = http.Header{
+		"content-type": []string{"application/json"},
+		// "accept":       []string{"*/*"},
+		// "user-agent":   []string{"BirdDriver/7795 CFNetwork/901.1 Darwin/17.6.0"},
+	}
+)
 
 // Remote for http call
 type Remote struct {
@@ -85,9 +92,33 @@ func (r *Remote) Get(url string, req interface{}, ret interface{}) error {
 // Call for default call
 func (r *Remote) Call(method, url string, payload io.Reader) ([]byte, error) {
 	req, _ := http.NewRequest(method, r.host+url, payload)
-	req.Header.Add("content-type", "application/json")
+	req.Header = defaultHeader
 
 	return r.CallRequest(req)
+}
+
+// CovertRequest 将结构提装换成request
+func CovertRequest(method, url string, req interface{}) (*http.Request, error) {
+	var payload io.Reader
+	if method == "GET" {
+		url = url + "?" + mapToURLValues(req).Encode()
+	} else {
+		bs, err := EnJSON(req)
+		if err != nil {
+			return nil, err
+		}
+		payload = bytes.NewReader(bs)
+	}
+	request, err := http.NewRequest(method, url, payload)
+	if err == nil && request != nil {
+		request.Header = defaultHeader
+	}
+	return request, err
+}
+
+// CovertRequest 将结构提装换成request
+func (r *Remote) CovertRequest(method, url string, req interface{}) (*http.Request, error) {
+	return CovertRequest(method, r.host+url, req)
 }
 
 // CallRequest for call http.Request

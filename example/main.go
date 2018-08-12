@@ -7,14 +7,14 @@ import (
 	"github.com/ipiao/remote"
 )
 
-func main() {
+// func main() {
 
-	// done:=make(chan struct{})
+// 	// done:=make(chan struct{})
 
-	fordo()
+// 	fordo()
 
-	// <-done
-}
+// 	// <-done
+// }
 
 func fordo() {
 	store := remote.NewXiciRedisStore("118.25.7.38:6379", "", remote.XiciProxyTypeNN)
