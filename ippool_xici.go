@@ -38,25 +38,9 @@ type XiciProxyType string
 // InitXiCiIppool 西刺动态ip池
 // page 的值域请具体参考网站
 // proxy 有时候爬取ip也需要代理
-func InitXiCiIppool(pages []int, pt XiciProxyType, store Ipstore, proxy ...string) error {
-
-	if store.Size() == 0 {
-		initXiCiIppool(pages, pt, store, proxy...)
-	}
-	go func() {
-		ticker := time.NewTicker(time.Minute * 5)
-		select {
-		case <-ticker.C:
-			initXiCiIppool(pages, pt, store, proxy...)
-		}
-	}()
-
-	return nil
-}
-
-func initXiCiIppool(pages []int, pt XiciProxyType, store Ipstore, proxy ...string) error {
+func InitXiCiIppool(pages []int, pt XiciProxyType, store Ipstore, proxy string, opts ...Option) error {
 	if len(pages) == 0 {
-		pages = []int{2, 4, 6, 8, 9}
+		pages = []int{1, 2}
 	}
 
 	baseURL := xiciHost + string(pt) + "/"
@@ -75,7 +59,7 @@ func initXiCiIppool(pages []int, pt XiciProxyType, store Ipstore, proxy ...strin
 			Timeout: time.Second * 30,
 		}
 		if len(proxy) > 0 {
-			proxyURL, err := url.Parse(proxy[0])
+			proxyURL, err := url.Parse(proxy)
 			if err != nil {
 				return err
 			}
@@ -87,8 +71,8 @@ func initXiCiIppool(pages []int, pt XiciProxyType, store Ipstore, proxy ...strin
 		if err != nil || response.StatusCode != 200 {
 			log.Println("遇到错误：", count, response.Status, err)
 			newProxy, _ := store.Get()
-			if newProxy != "" && count <= 3 {
-				proxy = []string{newProxy}
+			if newProxy == nil || newProxy.IP != "" && count <= 3 {
+				proxy = newProxy.Host()
 				goto GETRESP
 			}
 		}
@@ -117,7 +101,7 @@ func initXiCiIppool(pages []int, pt XiciProxyType, store Ipstore, proxy ...strin
 			checkTime := context.Find("td").Eq(9).Text()
 
 			//存入
-			store.Save(&ProxyInfo{
+			err = store.Save(&ProxyInfo{
 				IP:           ip,
 				Port:         port,
 				Address:      address,
@@ -125,7 +109,10 @@ func initXiCiIppool(pages []int, pt XiciProxyType, store Ipstore, proxy ...strin
 				Protocol:     protocol,
 				SurvivalTime: survivalTime,
 				CheckTime:    checkTime,
-			})
+			}, opts...)
+			if err != nil {
+				log.Println(err)
+			}
 		})
 	}
 

@@ -19,7 +19,7 @@ import (
 func fordo() {
 	store := remote.NewXiciRedisStore("118.25.7.38:6379", "", remote.XiciProxyTypeNN)
 	store.Clear()
-	err := remote.InitXiCiIppool([]int{1}, remote.XiciProxyTypeNT, store)
+	err := remote.InitXiCiIppool([]int{1}, remote.XiciProxyTypeNT, store, "")
 	if err != nil {
 		panic(err)
 	}

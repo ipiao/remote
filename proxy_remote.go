@@ -1,7 +1,7 @@
 package remote
 
 import (
-	"fmt"
+	"errors"
 	"log"
 	"net/http"
 	"net/url"
@@ -22,33 +22,73 @@ type ProxyInfo struct {
 	CheckTime    string
 }
 
+// Host return host
+func (info *ProxyInfo) Host() string {
+	return info.Protocol + "://" + info.IP + ":" + info.Port
+}
+
 // Ipstore is store for ip
 type Ipstore interface {
-	Save(*ProxyInfo) error
-	Get() (string, error)
+	Save(info *ProxyInfo, opts ...Option) error
+	Get() (*ProxyInfo, error)
 	Size() int
+	Del(*ProxyInfo) error
 	Clear() error
+	NotBad(*ProxyInfo) bool
+	AddBad(*ProxyInfo) error
 }
 
 // RedisIPStore redis存储
 type RedisIPStore struct {
-	conn redis.Conn
-	key  string
+	conn    redis.Conn
+	key     string
+	infokey string
+	badkey  string
+}
+
+// Option to check ProxyInfo
+type Option func(*ProxyInfo) bool
+
+// IsBad 是否不可用
+func (s *RedisIPStore) NotBad(info *ProxyInfo) bool {
+	res, _ := redis.Int(s.conn.Do("SISMEMBER", s.badkey, info.Host()))
+	return res == 0
+}
+
+// AddBad 添加不可用
+func (s *RedisIPStore) AddBad(info *ProxyInfo) error {
+	_, err := s.conn.Do("SADD", s.badkey, info.Host())
+	return err
 }
 
 // Save save a info
-func (s *RedisIPStore) Save(info *ProxyInfo) error {
+func (s *RedisIPStore) Save(info *ProxyInfo, opts ...Option) error {
+
+	if len(opts) == 0 {
+		opts = []Option{s.NotBad}
+	}
+
+	for _, fn := range opts {
+		if !fn(info) {
+			s.AddBad(info)
+			return errors.New("bad proxy")
+		}
+	}
+
 	info.Protocol = strings.ToLower(info.Protocol)
 	infoBytes, err := EnJSON(info)
 	if err != nil {
 		return err
 	}
+	host := info.Host()
 	infoStr := string(infoBytes)
-	_, err = s.conn.Do("SADD", s.key, infoStr)
+
+	_, err = s.conn.Do("SADD", s.key, host)
+	s.conn.Do("HSET", s.infokey, host, infoStr)
 	if err != nil {
 		return err
 	}
-	log.Println("存入", infoStr)
+	log.Println("存入:", infoStr)
 	return nil
 }
 
@@ -60,17 +100,19 @@ func (s *RedisIPStore) Size() int {
 }
 
 // Get get a host
-func (s *RedisIPStore) Get() (string, error) {
-	res, err := redis.Bytes(s.conn.Do("SRANDMEMBER", s.key))
+func (s *RedisIPStore) Get() (*ProxyInfo, error) {
+	host, err := redis.String(s.conn.Do("SRANDMEMBER", s.key))
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-
+	res, err := redis.Bytes(s.conn.Do("HGET", s.infokey, host))
+	if err != nil {
+		return nil, err
+	}
 	info := new(ProxyInfo)
 	err = DeJSON(res, info)
-	host := info.Protocol + "://" + info.IP + ":" + info.Port
 	log.Printf("取出：%s,Host: %s\n", string(res), host)
-	return host, err
+	return info, err
 }
 
 // Clear rest the store
@@ -78,6 +120,33 @@ func (s *RedisIPStore) Clear() error {
 	_, err := s.conn.Do("DEL", s.key)
 	if err != nil {
 		return err
+	}
+	_, err = s.conn.Do("DEL", s.infokey)
+	return err
+}
+
+// ClearBad rest the bad
+func (s *RedisIPStore) ClearBad() error {
+	_, err := s.conn.Do("DEL", s.badkey)
+	return err
+}
+
+// Del one
+func (s *RedisIPStore) Del(info *ProxyInfo) error {
+	host := info.Host()
+	_, err := s.conn.Do("SREM", s.key, host)
+	if err != nil {
+		return err
+	}
+	_, err = s.conn.Do("HDEL", s.infokey, host)
+	return err
+}
+
+// DelBad into bad
+func (s *RedisIPStore) DelBad(info *ProxyInfo) error {
+	err := s.Del(info)
+	if err == nil {
+		err = s.AddBad(info)
 	}
 	return err
 }
@@ -93,29 +162,38 @@ func NewRedisIPStore(host, pwd string, key ...string) *RedisIPStore {
 		panic(err)
 	}
 	store := &RedisIPStore{
-		conn: conn,
-		key:  k,
+		conn:    conn,
+		key:     k,
+		infokey: k + "_info",
+		badkey:  k + "_bad",
 	}
 	return store
 }
 
+// ProxyRemote  is ProxyRemote
 type ProxyRemote struct {
 	*Remote
-	proxy string
+	proxyInfo *ProxyInfo
 }
 
+// Proxy return proxy
 func (r *ProxyRemote) Proxy() string {
-	return r.proxy
+	return r.proxyInfo.Host()
+}
+
+// ProxyInfo return proxyInfo
+func (r *ProxyRemote) ProxyInfo() *ProxyInfo {
+	return r.proxyInfo
 }
 
 // NewProxyRemote 代理
-func NewProxyRemote(host, proxy string) *ProxyRemote {
+func NewProxyRemote(host string, proxy *ProxyInfo) *ProxyRemote {
 	return NewProxyRemoteTimeout(host, proxy, defaultTimeOut)
 }
 
 // NewProxyRemoteTimeout 代理
-func NewProxyRemoteTimeout(host, proxy string, timeout time.Duration) *ProxyRemote {
-	proxyURL, err := url.Parse(proxy)
+func NewProxyRemoteTimeout(host string, proxy *ProxyInfo, timeout time.Duration) *ProxyRemote {
+	proxyURL, err := url.Parse(proxy.Host())
 	if err != nil {
 		panic(err)
 	}
@@ -124,7 +202,7 @@ func NewProxyRemoteTimeout(host, proxy string, timeout time.Duration) *ProxyRemo
 	if tr, ok := remote.cli.Transport.(*http.Transport); ok {
 		tr.Proxy = http.ProxyURL(proxyURL)
 	}
-	return &ProxyRemote{Remote: remote, proxy: proxy}
+	return &ProxyRemote{Remote: remote, proxyInfo: proxy}
 }
 
 // ProxyRemoteStore 代理库
@@ -143,9 +221,9 @@ func NewProxyRemoteStore(host string, size int, store Ipstore) (*ProxyRemoteStor
 
 // NewProxyRemoteStoreTimeout creat
 func NewProxyRemoteStoreTimeout(host string, size int, store Ipstore, timeout time.Duration) (*ProxyRemoteStore, error) {
-	ssize := store.Size()
-	if ssize == 0 || ssize < size {
-		return nil, fmt.Errorf("store size is %d,and request size is %d", ssize, size)
+
+	if size != 0 && store.Size() > 0 {
+		return nil, errors.New("store size is not enough to initize")
 	}
 
 	rs := &ProxyRemoteStore{
@@ -184,10 +262,10 @@ func (rs *ProxyRemoteStore) Get() (*ProxyRemote, error) {
 
 // New create one
 func (rs *ProxyRemoteStore) New() (*ProxyRemote, error) {
-	proxy, err := rs.store.Get()
+	info, err := rs.store.Get()
 	if err != nil {
 		return nil, err
 	}
-	remote := NewProxyRemoteTimeout(rs.host, proxy, rs.timeout)
+	remote := NewProxyRemoteTimeout(rs.host, info, rs.timeout)
 	return remote, nil
 }

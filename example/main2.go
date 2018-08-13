@@ -11,57 +11,15 @@ import (
 	"github.com/ipiao/remote"
 )
 
-var accessalbeProxys = []string{
-	// "https://1.71.188.37:3128",
-	// "http://183.56.177.130:808",
-	"https://124.193.37.5:8888",
-	"https://124.235.208.252:443",
-	"https://180.101.205.253:8888",
+var accessalbeProxys = []*remote.ProxyInfo{
+	{IP: "124.193.37.5", Port: "8888", Protocol: "https"},
+	// "https://124.193.37.5:8888",
+	// "https://124.235.208.252:443",
+	// "https://180.101.205.253:8888",
 }
 
 var users = []*User{
-	// {"13545635678", ""},
-	// {"13805790176", "597b39ac7db54feab201cc015d0c9b2f"},
-	// {"15068879222", "1d01e49589e34594b162edd697a8522f"},
-	// {"15068169473", "27a71ea4cc414898ab82abbfb081d4f9"},
-	// {"15068724628", "7c86ba50d30348f883debde5e05bbc42"},
-	// {"15906690378", "3f0fdbfd25674abaa95aa802da127008"},
-
-	// {Phone: "15906690568", Authkey: "", Comment: "人在塔在", NickName: "盖轮"},
-	// {Phone: "18989898901", Authkey: "", Comment: "犯我德邦者，虽远必诛", NickName: "嘉文"},
-	// {Phone: "18989898919", Authkey: "", Comment: "我用双手成就你的梦想", NickName: "盲僧"},
-	// {Phone: "13023686868", Authkey: "", Comment: "我也是石头里蹦出来的，为什么不是猴子呢", NickName: "石头人"},
-	// {Phone: "13282828883", Authkey: "", Comment: "想去哪就去哪", NickName: "蒙多"},
-
-	// {Phone: "13282828258", Authkey: "", Comment: "楼下什么鬼？组队吗，我压缩贼6", NickName: "快乐风男"},
-	// {Phone: "13968055822", Authkey: "", Comment: "打乱队形，M37星云欢迎你", NickName: "迪迦奥特曼"},
-	// {Phone: "15068733184", Authkey: "", Comment: "青青草原都没了，老子还没吃到羊", NickName: "灰太狼"},
-	// {Phone: "15068734285", Authkey: "", Comment: "这里有人想摘下我的面具吗", NickName: "牛战士"},
-	// {Phone: "15988866676", Authkey: "", Comment: "要用魔法打败魔法", NickName: "老爹"},
-
-	// {Phone: "18458888850", Authkey: "", Comment: "小姐姐最好看了", NickName: ""},
-	// {Phone: "18458888835", Authkey: "", Comment: "送你上第一", NickName: ""},
-	// {Phone: "18458888829", Authkey: "", Comment: "加油加油", NickName: "qwer"},
-	// {Phone: "18458888825", Authkey: "", Comment: "为什么还有个男的？", NickName: "这是一个昵称"},
-	// {Phone: "18458888875", Authkey: "", Comment: "卖竹鼠了", NickName: "豆芽"},
-	// {Phone: "15068871144", Authkey: "", Comment: "最美最美最美最美", NickName: "姜太虚"},
-
-	// {Phone: "15988848586", Authkey: "", Comment: "全世界只有一个你，我好好珍惜", NickName: ""},
-	// {Phone: "15068724744", Authkey: "", Comment: "perfect！！", NickName: "老王"},
-	// {Phone: "15906690368", Authkey: "", Comment: "加油加油", NickName: "qqqq"},
-	// {Phone: "13003634131", Authkey: "", Comment: "有意思", NickName: "阿宝"},
-	// {Phone: "13675841881", Authkey: "", Comment: "you are so show", NickName: "cnidaria"},
-	// {Phone: "13282111119", Authkey: "", Comment: "美美美美美美", NickName: "饕餮"},
-
-	// {Phone: "13588383837", Authkey: "", Comment: "支持支持", NickName: "郑～"},
-	// {Phone: "13282828885", Authkey: "", Comment: "这姑娘不错", NickName: "好好先生"},
-	// {Phone: "13282118888", Authkey: "", Comment: "我就评论7个字", NickName: "颐达"},
-	// {Phone: "13282828299", Authkey: "", Comment: "大姑娘了。。", NickName: "波波波"},
-	// {Phone: "15068733353", Authkey: "", Comment: "赞赞赞", NickName: "竹笋"},
-	// {Phone: "15068734215", Authkey: "", Comment: "6666666666", NickName: "娜娜"},
-
-	// {Phone: "13282121314", Authkey: "", Comment: "这。。。。。好看", NickName: "老猫"},
-	{Phone: "18458888851", Authkey: "", Comment: "小姐姐好漂亮哦", NickName: ""},
+	// {Phone: "18458888851", Authkey: "", Comment: "小姐姐好漂亮哦", NickName: ""},
 	{Phone: "18458888839", Authkey: "", Comment: "1111111", NickName: "宋--"},
 	{Phone: "18458888832", Authkey: "", Comment: "火火火火火", NickName: ""},
 	{Phone: "18458888827", Authkey: "", Comment: "qaq,第一第一第一", NickName: "a_6"},
@@ -81,7 +39,7 @@ type User struct {
 func main1() {
 	store := remote.NewXiciRedisStore("118.25.7.38:6379", "", remote.XiciProxyTypeNT)
 	store.Clear()
-	err := remote.InitXiCiIppool([]int{1, 2, 3}, remote.XiciProxyTypeNT, store)
+	err := remote.InitXiCiIppool([]int{1, 2, 3}, remote.XiciProxyTypeNT, store, "")
 	if err != nil {
 		panic(err)
 	}
@@ -107,7 +65,7 @@ func main1() {
 
 }
 
-func main() {
+func main2() {
 
 	f, err1 := os.Create(fmt.Sprintf("user_%d", time.Now().Unix()))
 	if err1 != nil {
@@ -194,7 +152,7 @@ func main() {
 							authKey = ak.(string)
 							user.Authkey = authKey
 							wg.Done()
-							for k := 0; k < gonums-1; k++ {
+							for k := 0; k < gonums; k++ {
 								done <- k
 							}
 							log.Println("login success:", nret)
@@ -302,6 +260,10 @@ func main() {
 
 		time.Sleep(time.Second * 10)
 	}
+}
+
+func getFirstOne() {
+
 }
 
 //**** 实现过程
