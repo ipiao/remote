@@ -98,12 +98,7 @@ func main() {
 	}
 	defer f.Close()
 
-	for i, user := range users {
-		defer func(j int) {
-			b, _ := remote.EnJSON(&users[j])
-			f.Write(b)
-			f.Write([]byte{'\n'})
-		}(i)
+	for _, user := range users {
 
 		var err error
 		r := remote.NewProxyRemote("https://nsj-m.yy0578.com", "https://1.71.188.37:3128")
@@ -280,6 +275,11 @@ func main() {
 		}
 
 		log.Println(phone, authKey, uid)
+
+		b, _ := remote.EnJSON(user)
+		f.Write(b)
+		f.Write([]byte{'\n'})
+
 		time.Sleep(time.Second * 10)
 	}
 }
