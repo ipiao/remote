@@ -99,13 +99,22 @@ func NewRedisIPStore(host, pwd string, key ...string) *RedisIPStore {
 	return store
 }
 
+type ProxyRemote struct {
+	*Remote
+	proxy string
+}
+
+func (r *ProxyRemote) Proxy() string {
+	return r.proxy
+}
+
 // NewProxyRemote 代理
-func NewProxyRemote(host, proxy string) *Remote {
+func NewProxyRemote(host, proxy string) *ProxyRemote {
 	return NewProxyRemoteTimeout(host, proxy, defaultTimeOut)
 }
 
 // NewProxyRemoteTimeout 代理
-func NewProxyRemoteTimeout(host, proxy string, timeout time.Duration) *Remote {
+func NewProxyRemoteTimeout(host, proxy string, timeout time.Duration) *ProxyRemote {
 	proxyURL, err := url.Parse(proxy)
 	if err != nil {
 		panic(err)
@@ -115,14 +124,14 @@ func NewProxyRemoteTimeout(host, proxy string, timeout time.Duration) *Remote {
 	if tr, ok := remote.cli.Transport.(*http.Transport); ok {
 		tr.Proxy = http.ProxyURL(proxyURL)
 	}
-	return remote
+	return &ProxyRemote{Remote: remote, proxy: proxy}
 }
 
 // ProxyRemoteStore 代理库
 type ProxyRemoteStore struct {
 	host    string
 	store   Ipstore
-	remotes chan *Remote
+	remotes chan *ProxyRemote
 	size    int
 	timeout time.Duration
 }
@@ -147,7 +156,7 @@ func NewProxyRemoteStoreTimeout(host string, size int, store Ipstore, timeout ti
 	}
 
 	if size > 0 {
-		rs.remotes = make(chan *Remote, size*2)
+		rs.remotes = make(chan *ProxyRemote, size*2)
 	}
 
 	for i := 0; i < size; i++ {
@@ -161,7 +170,7 @@ func NewProxyRemoteStoreTimeout(host string, size int, store Ipstore, timeout ti
 }
 
 // Get one
-func (rs *ProxyRemoteStore) Get() (*Remote, error) {
+func (rs *ProxyRemoteStore) Get() (*ProxyRemote, error) {
 	if rs.size == 0 {
 		return rs.New()
 	}
@@ -174,7 +183,7 @@ func (rs *ProxyRemoteStore) Get() (*Remote, error) {
 }
 
 // New create one
-func (rs *ProxyRemoteStore) New() (*Remote, error) {
+func (rs *ProxyRemoteStore) New() (*ProxyRemote, error) {
 	proxy, err := rs.store.Get()
 	if err != nil {
 		return nil, err

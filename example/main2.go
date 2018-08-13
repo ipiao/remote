@@ -12,9 +12,11 @@ import (
 )
 
 var accessalbeProxys = []string{
-	"https://1.71.188.37:3128",
-	"http://183.56.177.130:808",
-	"https://218.60.8.83:3129",
+	// "https://1.71.188.37:3128",
+	// "http://183.56.177.130:808",
+	"https://124.193.37.5:8888",
+	"https://124.235.208.252:443",
+	"https://180.101.205.253:8888",
 }
 
 var users = []*User{
@@ -56,9 +58,9 @@ var users = []*User{
 	// {Phone: "13282118888", Authkey: "", Comment: "我就评论7个字", NickName: "颐达"},
 	// {Phone: "13282828299", Authkey: "", Comment: "大姑娘了。。", NickName: "波波波"},
 	// {Phone: "15068733353", Authkey: "", Comment: "赞赞赞", NickName: "竹笋"},
-	{Phone: "15068734215", Authkey: "", Comment: "6666666666", NickName: "娜娜"},
+	// {Phone: "15068734215", Authkey: "", Comment: "6666666666", NickName: "娜娜"},
 
-	{Phone: "13282121314", Authkey: "", Comment: "这。。。。。好看", NickName: "老猫"},
+	// {Phone: "13282121314", Authkey: "", Comment: "这。。。。。好看", NickName: "老猫"},
 	{Phone: "18458888851", Authkey: "", Comment: "小姐姐好漂亮哦", NickName: ""},
 	{Phone: "18458888839", Authkey: "", Comment: "1111111", NickName: "宋--"},
 	{Phone: "18458888832", Authkey: "", Comment: "火火火火火", NickName: ""},
@@ -76,32 +78,53 @@ type User struct {
 	Error    error
 }
 
-func main() {
-	// store := remote.NewXiciRedisStore("118.25.7.38:6379", "", remote.XiciProxyTypeNT)
-	// // store.Clear()
-	// err := remote.InitXiCiIppool([]int{1}, remote.XiciProxyTypeNT, store)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// rs, err := remote.NewProxyRemoteStoreTimeout("https://nsj-m.yy0578.com", 0, store, time.Second*3)
-	// if err != nil {
-	// 	panic(err)
-	// }
+func main1() {
+	store := remote.NewXiciRedisStore("118.25.7.38:6379", "", remote.XiciProxyTypeNT)
+	store.Clear()
+	err := remote.InitXiCiIppool([]int{1, 2, 3}, remote.XiciProxyTypeNT, store)
+	if err != nil {
+		panic(err)
+	}
+	rs, err := remote.NewProxyRemoteStoreTimeout("https://nsj-m.yy0578.com", 0, store, time.Second*3)
+	if err != nil {
+		panic(err)
+	}
 
-	// r, err := rs.New()
-	// if err != nil {
-	// 	panic(err)
-	// }
+	for {
+		r, err := rs.New()
+		if err != nil {
+			continue
+		}
+		req := map[string]interface{}{}
+		ret := make(map[string]interface{})
+		err = r.Post("/v2/imagescode/gettokennum", req, &ret)
+		if err != nil {
+			continue
+		}
+		token := ret["Token"].(string)
+		log.Println("gettokennum:", token, ret, r.Proxy())
+	}
+
+}
+
+func main() {
+
 	f, err1 := os.Create(fmt.Sprintf("user_%d", time.Now().Unix()))
 	if err1 != nil {
 		panic(err1)
 	}
 	defer f.Close()
 
-	for _, user := range users {
+	for i, user := range users {
+
+		defer func() {
+			b, _ := remote.EnJSON(users[i])
+			f.Write(b)
+			f.Write([]byte{'\n'})
+		}()
 
 		var err error
-		r := remote.NewProxyRemote("https://nsj-m.yy0578.com", "https://1.71.188.37:3128")
+		r := remote.NewProxyRemote("https://nsj-m.yy0578.com", accessalbeProxys[0])
 		// r := remote.NewRemote("https://nsj-m.yy0578.com")
 
 		// 获取token
@@ -129,7 +152,7 @@ func main() {
 		}
 		err = r.Post("/v1/smsController/sendVerifyCode", req, &ret)
 		if err != nil {
-			user.Error = err
+			log.Println(err)
 			return
 		}
 		log.Println("sendVerifyCode", ret)
@@ -144,7 +167,7 @@ func main() {
 		for i := 0; i < gonums; i++ {
 			wg.Add(1)
 			go func(c int) {
-				nr := remote.NewProxyRemote("https://nsj-m.yy0578.com", "https://1.71.188.37:3128")
+				nr := remote.NewProxyRemote("https://nsj-m.yy0578.com", accessalbeProxys[0])
 				for j := 0; j < 10000/gonums; j++ {
 					select {
 					case <-done:
@@ -192,6 +215,7 @@ func main() {
 			}(i)
 		}
 		wg.Wait()
+		log.Println("---------------------------------------------------------------------------")
 
 		// 点赞
 		req = map[string]interface{}{
@@ -275,10 +299,6 @@ func main() {
 		}
 
 		log.Println(phone, authKey, uid)
-
-		b, _ := remote.EnJSON(user)
-		f.Write(b)
-		f.Write([]byte{'\n'})
 
 		time.Sleep(time.Second * 10)
 	}
