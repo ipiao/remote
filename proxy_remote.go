@@ -272,3 +272,8 @@ func (rs *ProxyRemoteStore) New() (*ProxyRemote, error) {
 	remote := NewProxyRemoteTimeout(rs.host, info, rs.timeout)
 	return remote, err
 }
+
+// New create one
+func (rs *ProxyRemoteStore) NewPrxoyRemote(info *ProxyInfo) (*ProxyRemote, error) {
+	return NewProxyRemoteTimeout(rs.host, info, rs.timeout), nil
+}
