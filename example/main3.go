@@ -33,7 +33,7 @@ func makeNsjOpts(r *remote.ProxyRemote, store *remote.RedisIPStore) []remote.Opt
 	return []remote.Option{store.NotBad, func(*remote.ProxyInfo) bool {
 		ret := make(map[string]interface{})
 
-		err := r.Post("/v1/bbs/queryDetails", map[string]interface{}{"detailId": strconv.Itoa(did)}, &ret)
+		err := r.Post("/v2/imagescode/gettokennum", map[string]interface{}{}, &ret)
 		if err != nil {
 			log.Println(err)
 		}
@@ -171,7 +171,7 @@ func getMaxPraize() (max, second, self int, err error) {
 
 	if !hasSelf {
 		nret := new(Detail)
-		err = r.Post("/v1/bbs/queryDetails", createRequest(map[string]interface{}{"detailId": "654"}), &nret)
+		err = r.Post("/v1/bbs/queryDetails", createRequest(map[string]interface{}{"detailId": strconv.Itoa(did)}), &nret)
 		self = nret.Detail.Praises
 	}
 	log.Println(prises)
@@ -196,8 +196,8 @@ func main() {
 	// log.Println(err)
 	// err = accessableStore.ClearBad()
 	// log.Println(err)
-	initIPStore([]int{3})
-	initAccessablePool(15, 3)
+	initIPStore([]int{4})
+	initAccessablePool(5, 4)
 
 	var max, second, self int
 
