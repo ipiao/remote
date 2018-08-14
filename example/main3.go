@@ -128,7 +128,7 @@ type Detail struct {
 }
 
 func getMaxPraize() (max, second, self int, err error) {
-	r, err := accessableProxyRemoteStore.NewPrxoyRemote(nil)
+	r, err := accessableProxyRemoteStore.New()
 	if err != nil {
 		log.Println("Error-accessableProxyRemoteStore:", err)
 		// return
@@ -192,12 +192,12 @@ func main() {
 	// log.Println(err)
 	// err = ipStore.ClearBad()
 	// log.Println(err)
-	err = accessableStore.Clear()
+	accessableStore.Clear()
 	// log.Println(err)
 	// err = accessableStore.ClearBad()
 	// log.Println(err)
-	initIPStore([]int{1})
-	go initAccessablePool(15, 2)
+	initIPStore([]int{3})
+	initAccessablePool(15, 3)
 
 	var max, second, self int
 
