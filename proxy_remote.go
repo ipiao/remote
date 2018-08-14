@@ -178,6 +178,9 @@ type ProxyRemote struct {
 
 // Proxy return proxy
 func (r *ProxyRemote) Proxy() string {
+	if r.proxyInfo == nil {
+		return ""
+	}
 	return r.proxyInfo.Host()
 }
 
@@ -193,14 +196,17 @@ func NewProxyRemote(host string, proxy *ProxyInfo) *ProxyRemote {
 
 // NewProxyRemoteTimeout 代理
 func NewProxyRemoteTimeout(host string, proxy *ProxyInfo, timeout time.Duration) *ProxyRemote {
-	proxyURL, err := url.Parse(proxy.Host())
-	if err != nil {
-		panic(err)
-	}
+
 	remote := NewRemoteTimeout(host, timeout)
 
-	if tr, ok := remote.cli.Transport.(*http.Transport); ok {
-		tr.Proxy = http.ProxyURL(proxyURL)
+	if proxy != nil {
+		proxyURL, err := url.Parse(proxy.Host())
+		if err != nil {
+			panic(err)
+		}
+		if tr, ok := remote.cli.Transport.(*http.Transport); ok {
+			tr.Proxy = http.ProxyURL(proxyURL)
+		}
 	}
 	return &ProxyRemote{Remote: remote, proxyInfo: proxy}
 }
