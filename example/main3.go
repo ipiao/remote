@@ -17,12 +17,13 @@ var (
 	timeout   = time.Second * 30
 	nsjHost   = "https://nsj-m.yy0578.com"
 	redisHost = "118.25.7.38:6379"
+	redisPwd  = ""
 	did       = 654
 	posterId  = 10000007
 	ipPage    = 3
 
-	ipStore         = remote.NewXiciRedisStore(redisHost, "", pt)
-	accessableStore = remote.NewRedisIPStore(redisHost, "", "accessable_pool")
+	ipStore         = remote.NewXiciRedisStore(redisHost, redisPwd, pt)
+	accessableStore = remote.NewRedisIPStore(redisHost, redisPwd, "accessable_pool")
 
 	proxyRemoteStore, _           = remote.NewProxyRemoteStoreTimeout(nsjHost, 0, ipStore, timeout)
 	accessableProxyRemoteStore, _ = remote.NewProxyRemoteStoreTimeout(nsjHost, 0, accessableStore, timeout)
@@ -352,7 +353,7 @@ func main() {
 	var err error
 	var targetDistance = 10 // 要保证10个点赞的差距
 
-	redisClient, err = redis.Dial("tcp", redisHost)
+	redisClient, err = redis.Dial("tcp", redisHost, redis.DialPassword(redisPwd))
 	if err != nil {
 		panic(err)
 	}
