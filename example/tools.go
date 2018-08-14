@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/garyburd/redigo/redis"
 )
 
 var (
@@ -23,7 +22,7 @@ var (
 )
 
 func storeResource(key, val string) error {
-	_, err := redisClient.Do("SADD", key, val)
+	err := redisClient.SAdd(key, val).Err()
 	if err != nil {
 		log.Println("Error-storeUsedResource:", err)
 	}
@@ -31,17 +30,17 @@ func storeResource(key, val string) error {
 }
 
 func cardResource(key string) int {
-	res, _ := redis.Int(redisClient.Do("SCARD", key))
-	return res
+	res, _ := redisClient.SCard(key).Result()
+	return int(res)
 }
 
 func popResource(key string) (string, error) {
-	return redis.String(redisClient.Do("SPOP", key))
+	return redisClient.SPop(key).Result()
 }
 
 func isUsedResource(key, val string) bool {
-	res, _ := redis.Int(redisClient.Do("SISMEMBER", key, val))
-	return res != 0
+	res, _ := redisClient.SIsMember(key, val).Result()
+	return res
 }
 
 // 获取随机手机号

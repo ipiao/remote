@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/garyburd/redigo/redis"
+	"github.com/go-redis/redis"
 	"github.com/ipiao/remote"
 )
 
@@ -22,13 +22,12 @@ var (
 	posterId  = 10000007
 	ipPage    = 3
 
-	ipStore         = remote.NewXiciRedisStore(redisHost, redisPwd, pt)
-	accessableStore = remote.NewRedisIPStore(redisHost, redisPwd, "accessable_pool")
+	redisClient     = redis.NewClient(&redis.Options{Addr: redisHost, Password: redisPwd})
+	ipStore         = remote.MountRedisIPStore(redisClient, "pre_pool")
+	accessableStore = remote.MountRedisIPStore(redisClient, "accessable_pool")
 
 	proxyRemoteStore, _           = remote.NewProxyRemoteStoreTimeout(nsjHost, 0, ipStore, timeout)
 	accessableProxyRemoteStore, _ = remote.NewProxyRemoteStoreTimeout(nsjHost, 0, accessableStore, timeout)
-
-	redisClient redis.Conn
 )
 
 func makeNsjOpts(r *remote.ProxyRemote, store *remote.RedisIPStore) []remote.Option {
@@ -353,11 +352,6 @@ func main() {
 	var err error
 	var targetDistance = 10 // 要保证10个点赞的差距
 
-	redisClient, err = redis.Dial("tcp", redisHost, redis.DialPassword(redisPwd))
-	if err != nil {
-		panic(err)
-	}
-
 	accessableStore.Clear()
 	accessableStore.Save(&remote.ProxyInfo{
 		IP:       "218.60.8.99",
@@ -374,7 +368,7 @@ func main() {
 	// accessableStore.ClearBad()
 	// log.Println(err)
 	// initIPStore([]int{ipPage})
-	go initAccessablePool(5, ipPage)
+	go initAccessablePool(3, ipPage)
 
 	var max, second, self int
 

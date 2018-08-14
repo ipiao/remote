@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/garyburd/redigo/redis"
+	"github.com/go-redis/redis"
 )
 
 // ProxyInfo 记录代理信息
@@ -40,7 +40,7 @@ type Ipstore interface {
 
 // RedisIPStore redis存储
 type RedisIPStore struct {
-	conn    redis.Conn
+	cli     *redis.Client
 	key     string
 	infokey string
 	badkey  string
@@ -49,16 +49,15 @@ type RedisIPStore struct {
 // Option to check ProxyInfo
 type Option func(*ProxyInfo) bool
 
-// IsBad 是否不可用
+// NotBad 是否可用
 func (s *RedisIPStore) NotBad(info *ProxyInfo) bool {
-	res, _ := redis.Int(s.conn.Do("SISMEMBER", s.badkey, info.Host()))
-	return res == 0
+	res, _ := s.cli.SIsMember(s.badkey, info.Host()).Result()
+	return !res
 }
 
 // AddBad 添加不可用
 func (s *RedisIPStore) AddBad(info *ProxyInfo) error {
-	_, err := s.conn.Do("SADD", s.badkey, info.Host())
-	return err
+	return s.cli.SAdd(s.badkey, info.Host()).Err()
 }
 
 // Save save a info
@@ -83,32 +82,30 @@ func (s *RedisIPStore) Save(info *ProxyInfo, opts ...Option) error {
 	host := info.Host()
 	infoStr := string(infoBytes)
 
-	_, err = s.conn.Do("SADD", s.key, host)
-	if err != nil {
+	err = s.cli.Watch(func(tx *redis.Tx) error {
+		_, err := tx.Pipelined(func(pipe redis.Pipeliner) error {
+			pipe.SAdd(s.key, host)
+			pipe.HSet(s.infokey, host, infoStr)
+			return nil
+		})
 		return err
-	}
-	_, err = s.conn.Do("HSET", s.infokey, host, infoStr)
-	if err != nil {
-		return err
-	}
+	})
 	log.Println("存入:", infoStr)
-	return nil
+	return err
 }
 
 // Size get size
 func (s *RedisIPStore) Size() int {
-	res, err := s.conn.Do("SCARD", s.key)
-	size, _ := redis.Int(res, err)
-	return size
+	return int(s.cli.SCard(s.key).Val())
 }
 
 // Get get a host
 func (s *RedisIPStore) Get() (*ProxyInfo, error) {
-	host, err := redis.String(s.conn.Do("SRANDMEMBER", s.key))
+	host, err := s.cli.SRandMember(s.key).Result()
 	if err != nil {
 		return nil, err
 	}
-	res, err := redis.Bytes(s.conn.Do("HGET", s.infokey, host))
+	res, err := s.cli.HGet(s.infokey, host).Bytes()
 	if err != nil {
 		return nil, err
 	}
@@ -120,28 +117,26 @@ func (s *RedisIPStore) Get() (*ProxyInfo, error) {
 
 // Clear rest the store
 func (s *RedisIPStore) Clear() error {
-	_, err := s.conn.Do("DEL", s.key)
-	if err != nil {
-		return err
-	}
-	_, err = s.conn.Do("DEL", s.infokey)
-	return err
+	return s.cli.Del(s.key, s.infokey).Err()
 }
 
 // ClearBad rest the bad
 func (s *RedisIPStore) ClearBad() error {
-	_, err := s.conn.Do("DEL", s.badkey)
-	return err
+	return s.cli.Del(s.badkey).Err()
 }
 
 // Del one
 func (s *RedisIPStore) Del(info *ProxyInfo) error {
 	host := info.Host()
-	_, err := s.conn.Do("SREM", s.key, host)
-	if err != nil {
+
+	err := s.cli.Watch(func(tx *redis.Tx) error {
+		_, err := tx.Pipelined(func(pipe redis.Pipeliner) error {
+			pipe.SRem(s.key, host)
+			pipe.HDel(s.infokey, host)
+			return nil
+		})
 		return err
-	}
-	_, err = s.conn.Do("HDEL", s.infokey, host)
+	})
 	return err
 }
 
@@ -160,12 +155,28 @@ func NewRedisIPStore(host, pwd string, key ...string) *RedisIPStore {
 	if len(key) > 0 {
 		k = key[0]
 	}
-	conn, err := redis.Dial("tcp", host, redis.DialPassword(pwd))
-	if err != nil {
-		panic(err)
+	cli := redis.NewClient(&redis.Options{
+		Addr:     host,
+		Password: pwd,
+	})
+
+	store := &RedisIPStore{
+		cli:     cli,
+		key:     k,
+		infokey: k + "_info",
+		badkey:  k + "_bad",
+	}
+	return store
+}
+
+// MountRedisIPStore create
+func MountRedisIPStore(cli *redis.Client, key ...string) *RedisIPStore {
+	k := "ippool"
+	if len(key) > 0 {
+		k = key[0]
 	}
 	store := &RedisIPStore{
-		conn:    conn,
+		cli:     cli,
 		key:     k,
 		infokey: k + "_info",
 		badkey:  k + "_bad",
