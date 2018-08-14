@@ -15,7 +15,7 @@ import (
 
 var (
 	pt        = remote.XiciProxyTypeWN
-	timeout   = time.Second * 30
+	timeout   = time.Second * 15
 	nsjHost   = "https://nsj-m.yy0578.com"
 	redisHost = "118.25.7.38:6379"
 	did       = 654
@@ -33,7 +33,8 @@ var (
 func makeNsjOpts(r *remote.ProxyRemote, store *remote.RedisIPStore) []remote.Option {
 	return []remote.Option{store.NotBad, func(*remote.ProxyInfo) bool {
 		ret := make(map[string]interface{})
-		err := r.Post("/v1/bbs/queryDetails", map[string]interface{}{"detailId": "654"}, &ret)
+
+		err := r.Post("/v1/bbs/queryDetails", map[string]interface{}{"detailId": strconv.Itoa(did)}, &ret)
 		if err != nil {
 			log.Println(err)
 		}
@@ -197,7 +198,7 @@ func main() {
 	err = accessableStore.ClearBad()
 	// log.Println(err)
 	// initIPStore([]int{1})
-	initAccessablePool(15, 1)
+	go initAccessablePool(15, 1)
 
 	var max, second, self int
 
@@ -345,6 +346,7 @@ func doit(num int) {
 		log.Println("addPraise return:", ret)
 
 		// 评论
+		comment := getComment()
 		req = map[string]interface{}{
 			"comment": map[string]interface{}{
 				"detailsId":   did,
@@ -373,7 +375,7 @@ func doit(num int) {
 			req = map[string]interface{}{
 				"uid":      uid,
 				"sex":      strconv.Itoa(i / 2),
-				"nickName": nickName,
+				"nickName": comment,
 			}
 			request3, err := r.CovertRequest("POST", "/v1/userAccount/updateUserInfoById", createRequest(req))
 			if err != nil {
@@ -391,7 +393,7 @@ func doit(num int) {
 			log.Println("updateUserInfoById return:", ret)
 		}
 
-		log.Println(phone, authKey, uid)
+		log.Println(phone, authKey, uid, nickName, comment)
 		time.Sleep(time.Second * 10)
 	}
 }

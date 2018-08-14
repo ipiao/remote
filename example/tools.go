@@ -17,10 +17,12 @@ var (
 	usedPhoneKey    = "used_phone"
 	usedNickNameKey = "used_nick_name"
 	nickNameKey     = "nick_name"
+	commentKey      = "comment"
 	nickNamePage    = 1
+	commentPage     = 0
 )
 
-func storeUsedResource(key, val string) error {
+func storeResource(key, val string) error {
 	_, err := redisClient.Do("SADD", key, val)
 	if err != nil {
 		log.Println("Error-storeUsedResource:", err)
@@ -59,7 +61,7 @@ func getPhone() string {
 	if isUsedResource(usedPhoneKey, str) {
 		return getPhone()
 	}
-	storeUsedResource(usedPhoneKey, str)
+	storeResource(usedPhoneKey, str)
 	return str
 }
 
@@ -72,7 +74,7 @@ func getNickName() string {
 	if isUsedResource(usedNickNameKey, name) {
 		return getNickName()
 	}
-	storeUsedResource(usedNickNameKey, name)
+	storeResource(usedNickNameKey, name)
 	return name
 }
 
@@ -105,12 +107,59 @@ func initNickNameStore(page int) error {
 		//地址
 		name := context.Text()
 		log.Println(name)
-		storeUsedResource(nickNameKey, name)
+		storeResource(nickNameKey, name)
+	})
+
+	return nil
+}
+
+// func main() {
+// 	initCommentStore(0)
+// }
+
+func initCommentStore(page int) error {
+
+	url := "https://www.juzimi.com/article/%E7%BA%A2%E6%A5%BC%E6%A2%A6?page=" + strconv.Itoa(commentPage)
+	request, _ := http.NewRequest("GET", url, nil)
+	request.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+
+	client := &http.Client{
+		Timeout: time.Second * 30,
+	}
+	response, err := client.Do(request)
+	if err != nil {
+		log.Println("遇到错误：", err)
+		return err
+	}
+	if response.StatusCode != 200 {
+		err = errors.New(response.Status)
+		log.Println("遇到错误：", err)
+		return err
+	}
+
+	dom, err := goquery.NewDocumentFromResponse(response)
+	if err != nil {
+		return err
+	}
+
+	dom.Find("#block-views-xqarticletermspage-block_1 > div > div > div > div > div.view-content> div > div > div.views-field-phpcode-1 > a").Each(func(i int, context *goquery.Selection) {
+		comment := context.Text()
+		log.Println(comment)
+		storeResource(commentKey, comment)
 	})
 
 	return nil
 }
 
 func getComment() string {
-	return ""
+	comment, err := popResource(commentKey)
+	if err != nil || comment == "" {
+		initCommentStore(commentPage)
+		return getComment()
+	}
+	// if isUsedResource(commentKey, comment) {
+	// 	return getComment()
+	// }
+	// storeResource(usedNickNameKey, name)
+	return comment
 }
