@@ -233,6 +233,7 @@ GetMaxPraize:
 func doit(num int) {
 
 	for i := 0; i < num; i++ {
+		log.Println("开始第", i+1)
 
 		var err error
 		r, _ := accessableProxyRemoteStore.New()
