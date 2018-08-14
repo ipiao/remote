@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	pt        = remote.XiciProxyTypeWN
+	pt        = remote.XiciProxyTypeNT
 	timeout   = time.Second * 15
 	nsjHost   = "https://nsj-m.yy0578.com"
 	redisHost = "118.25.7.38:6379"
@@ -30,15 +30,16 @@ var (
 )
 
 func makeNsjOpts(r *remote.ProxyRemote, store *remote.RedisIPStore) []remote.Option {
-	return []remote.Option{store.NotBad, func(*remote.ProxyInfo) bool {
-		ret := make(map[string]interface{})
+	return []remote.Option{store.NotBad} // func(*remote.ProxyInfo) bool {
+	// 	ret := make(map[string]interface{})
 
-		err := r.Post("/v2/imagescode/gettokennum", map[string]interface{}{}, &ret)
-		if err != nil {
-			log.Println(err)
-		}
-		return err == nil
-	}}
+	// 	err := r.Post("/v2/imagescode/gettokennum", map[string]interface{}{}, &ret)
+	// 	if err != nil {
+	// 		log.Println(err)
+	// 	}
+	// 	return err == nil
+	// }
+
 }
 
 func initIPStore(pages []int) {
