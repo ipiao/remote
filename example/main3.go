@@ -13,14 +13,14 @@ import (
 )
 
 var (
-	pt        = remote.XiciProxyTypeNT
+	pt        = remote.XiciProxyTypeNN
 	timeout   = time.Second * 5
 	nsjHost   = "https://nsj-m.yy0578.com"
 	redisHost = "118.25.7.38:6379"
 	redisPwd  = ""
 	did       = 654
 	posterId  = 10000007
-	ipPage    = 1
+	ipPage    = 2
 
 	redisClient     = redis.NewClient(&redis.Options{Addr: redisHost, Password: redisPwd})
 	ipStore         = remote.MountRedisIPStore(redisClient, "pre_pool")
