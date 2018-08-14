@@ -269,9 +269,6 @@ func (rs *ProxyRemoteStore) Get() (*ProxyRemote, error) {
 // New create one
 func (rs *ProxyRemoteStore) New() (*ProxyRemote, error) {
 	info, err := rs.store.Get()
-	if err != nil {
-		return nil, err
-	}
 	remote := NewProxyRemoteTimeout(rs.host, info, rs.timeout)
-	return remote, nil
+	return remote, err
 }

@@ -131,7 +131,7 @@ func getMaxPraize() (max, second, self int, err error) {
 	r, err := accessableProxyRemoteStore.New()
 	if err != nil {
 		log.Println("Error-accessableProxyRemoteStore:", err)
-		return
+		// return
 	}
 	req := map[string]interface{}{
 		"labelPO": map[string]interface{}{
@@ -192,12 +192,12 @@ func main() {
 	// log.Println(err)
 	// err = ipStore.ClearBad()
 	// log.Println(err)
-	// err = accessableStore.Clear()
+	err = accessableStore.Clear()
 	// log.Println(err)
 	// err = accessableStore.ClearBad()
 	// log.Println(err)
 	initIPStore([]int{1})
-	go initAccessablePool(15, 1)
+	go initAccessablePool(15, 2)
 
 	var max, second, self int
 
@@ -205,7 +205,7 @@ GetMaxPraize:
 	log.Println("Start GetMaxPraize")
 	max, second, self, err = getMaxPraize()
 	if err != nil {
-		time.Sleep(time.Minute * 10)
+		time.Sleep(time.Second * 10)
 		log.Println("10 seconds later getMaxPraize")
 		goto GetMaxPraize
 	}
@@ -346,7 +346,7 @@ func doit(num int) {
 		req = map[string]interface{}{
 			"comment": map[string]interface{}{
 				"detailsId":   did,
-				"commentText": getComment(),
+				"commentText": comment,
 			},
 			"posterId": posterId,
 		}
@@ -371,7 +371,7 @@ func doit(num int) {
 			req = map[string]interface{}{
 				"uid":      uid,
 				"sex":      strconv.Itoa(i / 2),
-				"nickName": comment,
+				"nickName": nickName,
 			}
 			request3, err := r.CovertRequest("POST", "/v1/userAccount/updateUserInfoById", createRequest(req))
 			if err != nil {
