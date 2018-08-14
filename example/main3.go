@@ -190,18 +190,19 @@ func main() {
 
 	ipStore.Clear()
 	// log.Println(err)
-	err = ipStore.ClearBad()
+	// err = ipStore.ClearBad()
 	// log.Println(err)
 	// err = accessableStore.Clear()
 	// log.Println(err)
-	err = accessableStore.ClearBad()
+	// err = accessableStore.ClearBad()
 	// log.Println(err)
-	// initIPStore([]int{1})
+	initIPStore([]int{1})
 	go initAccessablePool(15, 1)
 
 	var max, second, self int
 
 GetMaxPraize:
+	log.Println("Start GetMaxPraize")
 	max, second, self, err = getMaxPraize()
 	if err != nil {
 		time.Sleep(time.Minute * 10)
