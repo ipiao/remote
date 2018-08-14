@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 	"strconv"
 	"sync"
 	"time"
@@ -231,11 +230,6 @@ GetMaxPraize:
 }
 
 func doit(num int) {
-	f, err := os.Create(fmt.Sprintf("user_%d", time.Now().Unix()))
-	if err != nil {
-		log.Println(err)
-	}
-	defer f.Close()
 
 	for i := 0; i < num; i++ {
 
@@ -393,7 +387,10 @@ func doit(num int) {
 			log.Println("updateUserInfoById return:", ret)
 		}
 
-		log.Println(phone, authKey, uid, nickName, comment)
+		ssyt := fmt.Sprintf("phone:%s, authKey:%s, uid:%d, nickName:%s, comment:%s", phone, authKey, uid, nickName, comment)
+		storeResource("success_tries", ssyt)
+
+		log.Println(ssyt)
 		time.Sleep(time.Second * 10)
 	}
 }
