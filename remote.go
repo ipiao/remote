@@ -18,8 +18,6 @@ var (
 	defaultTimeOut = time.Second * 30
 	defaultHeader  = http.Header{
 		"content-type": []string{"application/json"},
-		"accept":       []string{"*/*"},
-		"user-agent":   []string{"BirdDriver/7795 CFNetwork/901.1 Darwin/17.6.0"},
 	}
 )
 

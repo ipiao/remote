@@ -20,7 +20,7 @@ var (
 	redisPwd  = ""
 	did       = 654
 	posterId  = 10000007
-	ipPage    = 3
+	ipPage    = 9
 
 	redisClient     = redis.NewClient(&redis.Options{Addr: redisHost, Password: redisPwd})
 	ipStore         = remote.MountRedisIPStore(redisClient, "pre_pool")
@@ -134,6 +134,12 @@ func getMaxPraize() (max, second, self int, err error) {
 	if err != nil {
 		log.Println("Error-accessableProxyRemoteStore:", err)
 		// return
+		if r == nil {
+			log.Println("error in rs.store.Get()")
+			return
+		} else {
+			log.Println("error in NewProxyRemoteTimeout")
+		}
 	}
 	req := map[string]interface{}{
 		"labelPO": map[string]interface{}{
@@ -359,7 +365,7 @@ func main() {
 		Protocol: "https",
 	})
 
-	// ipStore.Clear()
+	ipStore.Clear()
 	// log.Println(err)
 	// err = ipStore.ClearBad()
 	// log.Println(err)
@@ -368,7 +374,7 @@ func main() {
 	// accessableStore.ClearBad()
 	// log.Println(err)
 	// initIPStore([]int{ipPage})
-	go initAccessablePool(3, ipPage)
+	go initAccessablePool(5, ipPage)
 
 	var max, second, self int
 
