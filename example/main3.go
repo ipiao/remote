@@ -13,14 +13,14 @@ import (
 )
 
 var (
-	pt        = remote.XiciProxyTypeNN
+	pt        = remote.XiciProxyTypeWT
 	timeout   = time.Second * 5
 	nsjHost   = "https://nsj-m.yy0578.com"
 	redisHost = "118.25.7.38:6379"
 	redisPwd  = ""
 	did       = 654
 	posterId  = 10000007
-	ipPage    = 2
+	ipPage    = 4
 
 	redisClient     = redis.NewClient(&redis.Options{Addr: redisHost, Password: redisPwd})
 	ipStore         = remote.MountRedisIPStore(redisClient, "pre_pool")
@@ -362,7 +362,7 @@ func main() {
 	accessableStore.Save(&remote.ProxyInfo{
 		IP:       "218.60.8.99",
 		Port:     "3129",
-		Protocol: "https",
+		Protocol: "http",
 	})
 
 	ipStore.Clear()
