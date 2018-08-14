@@ -128,7 +128,7 @@ type Detail struct {
 }
 
 func getMaxPraize() (max, second, self int, err error) {
-	r, err := accessableProxyRemoteStore.NewPrxoyRemote()
+	r, err := accessableProxyRemoteStore.NewPrxoyRemote(nil)
 	if err != nil {
 		log.Println("Error-accessableProxyRemoteStore:", err)
 		// return
