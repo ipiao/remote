@@ -269,6 +269,11 @@ func (rs *ProxyRemoteStore) Get() (*ProxyRemote, error) {
 	}
 }
 
+// Put one
+func (rs *ProxyRemoteStore) Put(r *ProxyRemote) {
+	rs.remotes <- r
+}
+
 // New create one
 func (rs *ProxyRemoteStore) New() (*ProxyRemote, error) {
 	info, err := rs.store.Get()

@@ -14,7 +14,7 @@ import (
 
 var (
 	pt        = remote.XiciProxyTypeNT
-	timeout   = time.Second * 30
+	timeout   = time.Second * 5
 	nsjHost   = "https://nsj-m.yy0578.com"
 	redisHost = "118.25.7.38:6379"
 	redisPwd  = ""
@@ -131,7 +131,7 @@ type Detail struct {
 }
 
 func getMaxPraize() (max, second, self int, err error) {
-	r, err := accessableProxyRemoteStore.New()
+	r, err := accessableProxyRemoteStore.Get()
 	if err != nil {
 		log.Println("Error-accessableProxyRemoteStore:", err)
 		// return
@@ -188,7 +188,7 @@ func doit(num int) {
 		log.Println("开始第", i+1)
 
 		var err error
-		r, _ := accessableProxyRemoteStore.New()
+		r, _ := accessableProxyRemoteStore.Get()
 
 		// 获取token
 		req := map[string]interface{}{}
@@ -358,7 +358,14 @@ func main() {
 		panic(err)
 	}
 
-	ipStore.Clear()
+	accessableStore.Clear()
+	accessableStore.Save(&remote.ProxyInfo{
+		IP:       "218.60.8.99",
+		Port:     "3129",
+		Protocol: "https",
+	})
+
+	// ipStore.Clear()
 	// log.Println(err)
 	// err = ipStore.ClearBad()
 	// log.Println(err)
@@ -367,7 +374,7 @@ func main() {
 	// accessableStore.ClearBad()
 	// log.Println(err)
 	// initIPStore([]int{ipPage})
-	initAccessablePool(5, ipPage)
+	go initAccessablePool(5, ipPage)
 
 	var max, second, self int
 
