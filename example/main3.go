@@ -13,12 +13,13 @@ import (
 )
 
 var (
-	pt        = remote.XiciProxyTypeWT
-	timeout   = time.Second * 10
+	pt        = remote.XiciProxyTypeNT
+	timeout   = time.Second * 30
 	nsjHost   = "https://nsj-m.yy0578.com"
 	redisHost = "118.25.7.38:6379"
 	did       = 654
 	posterId  = 10000007
+	ipPage    = 3
 
 	ipStore         = remote.NewXiciRedisStore(redisHost, "", pt)
 	accessableStore = remote.NewRedisIPStore(redisHost, "", "accessable_pool")
@@ -178,57 +179,6 @@ func getMaxPraize() (max, second, self int, err error) {
 	log.Println(prises)
 	log.Println("RETURN-getMaxPraize:", max, second, self, err)
 	return
-}
-
-func main() {
-	var err error
-	var targetDistance = 10 // 要保证10个点赞的差距
-
-	redisClient, err = redis.Dial("tcp", redisHost)
-	if err != nil {
-		panic(err)
-	}
-
-	ipStore.Clear()
-	// log.Println(err)
-	// err = ipStore.ClearBad()
-	// log.Println(err)
-	// accessableStore.Clear()
-	// log.Println(err)
-	// err = accessableStore.ClearBad()
-	// log.Println(err)
-	// initIPStore([]int{4})
-	go initAccessablePool(5, 2)
-
-	var max, second, self int
-
-GetMaxPraize:
-	log.Println("Start GetMaxPraize")
-	max, second, self, err = getMaxPraize()
-	if err != nil {
-		time.Sleep(time.Second * 10)
-		log.Println("10 seconds later getMaxPraize")
-		goto GetMaxPraize
-	}
-
-	if self == max {
-		dist := self - second
-		log.Print("当前已经是第一了，比第二名多:", dist)
-		if dist >= targetDistance {
-			log.Print("5分钟后我再来看")
-			time.Sleep(time.Minute * 5)
-			log.Print("5分钟过去了")
-			goto GetMaxPraize
-		} else {
-			doit(targetDistance - dist)
-			goto GetMaxPraize
-		}
-	} else {
-		log.Print("当前已经不是第一了，比第一名少:", max-self)
-
-		doit(max - self + targetDistance)
-		goto GetMaxPraize
-	}
 }
 
 func doit(num int) {
@@ -395,5 +345,56 @@ func doit(num int) {
 
 		log.Println(ssyt)
 		time.Sleep(time.Second * 10)
+	}
+}
+
+func main() {
+	var err error
+	var targetDistance = 10 // 要保证10个点赞的差距
+
+	redisClient, err = redis.Dial("tcp", redisHost)
+	if err != nil {
+		panic(err)
+	}
+
+	ipStore.Clear()
+	// log.Println(err)
+	// err = ipStore.ClearBad()
+	// log.Println(err)
+	// accessableStore.Clear()
+	// log.Println(err)
+	// accessableStore.ClearBad()
+	// log.Println(err)
+	// initIPStore([]int{ipPage})
+	initAccessablePool(5, ipPage)
+
+	var max, second, self int
+
+GetMaxPraize:
+	log.Println("Start GetMaxPraize")
+	max, second, self, err = getMaxPraize()
+	if err != nil {
+		time.Sleep(time.Second * 10)
+		log.Println("10 seconds later getMaxPraize")
+		goto GetMaxPraize
+	}
+
+	if self == max {
+		dist := self - second
+		log.Print("当前已经是第一了，比第二名多:", dist)
+		if dist >= targetDistance {
+			log.Print("5分钟后我再来看")
+			time.Sleep(time.Minute * 5)
+			log.Print("5分钟过去了")
+			goto GetMaxPraize
+		} else {
+			doit(targetDistance - dist)
+			goto GetMaxPraize
+		}
+	} else {
+		log.Print("当前已经不是第一了，比第一名少:", max-self)
+
+		doit(max - self + targetDistance)
+		goto GetMaxPraize
 	}
 }
