@@ -33,10 +33,11 @@ func makeNsjOpts(r *remote.ProxyRemote, store *remote.RedisIPStore) []remote.Opt
 	return []remote.Option{store.NotBad, func(*remote.ProxyInfo) bool {
 		ret := make(map[string]interface{})
 
-		err := r.Post("/v2/imagescode/gettokennum", map[string]interface{}{}, &ret)
+		err := r.Post("/v2/imagescode/gettokennum", createRequest(map[string]interface{}{}), &ret)
 		if err != nil {
 			log.Println(err)
 		}
+		log.Println(ret)
 		return err == nil
 	}}
 }

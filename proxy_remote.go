@@ -84,7 +84,10 @@ func (s *RedisIPStore) Save(info *ProxyInfo, opts ...Option) error {
 	infoStr := string(infoBytes)
 
 	_, err = s.conn.Do("SADD", s.key, host)
-	s.conn.Do("HSET", s.infokey, host, infoStr)
+	if err != nil {
+		return err
+	}
+	_, err = s.conn.Do("HSET", s.infokey, host, infoStr)
 	if err != nil {
 		return err
 	}
