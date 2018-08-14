@@ -18,8 +18,8 @@ var (
 	usedNickNameKey = "used_nick_name"
 	nickNameKey     = "nick_name"
 	commentKey      = "comment"
-	nickNamePage    = 1
-	commentPage     = 0
+	nickNamePage    = 2
+	commentPage     = 1
 )
 
 func storeResource(key, val string) error {
