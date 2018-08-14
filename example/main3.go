@@ -358,7 +358,7 @@ func main() {
 	var err error
 	var targetDistance = 10 // 要保证10个点赞的差距
 
-	accessableStore.Clear()
+	// accessableStore.Clear()
 	accessableStore.Save(&remote.ProxyInfo{
 		IP:       "218.60.8.99",
 		Port:     "3129",
