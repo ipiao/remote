@@ -57,6 +57,7 @@ func main1() {
 		ret := make(map[string]interface{})
 		err = r.Post("/v2/imagescode/gettokennum", req, &ret)
 		if err != nil {
+			store.DelBad(r.ProxyInfo())
 			continue
 		}
 		token := ret["Token"].(string)

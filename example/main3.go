@@ -8,27 +8,26 @@ import (
 	"sync"
 	"time"
 
-	"github.com/garyburd/redigo/redis"
+	"github.com/go-redis/redis"
 	"github.com/ipiao/remote"
 )
 
 var (
-	pt        = remote.XiciProxyTypeNT
-	timeout   = time.Second * 30
+	pt        = remote.XiciProxyTypeWT
+	timeout   = time.Second * 5
 	nsjHost   = "https://nsj-m.yy0578.com"
 	redisHost = "118.25.7.38:6379"
 	redisPwd  = ""
 	did       = 654
 	posterId  = 10000007
-	ipPage    = 3
+	ipPage    = 4
 
-	ipStore         = remote.NewXiciRedisStore(redisHost, redisPwd, pt)
-	accessableStore = remote.NewRedisIPStore(redisHost, redisPwd, "accessable_pool")
+	redisClient     = redis.NewClient(&redis.Options{Addr: redisHost, Password: redisPwd})
+	ipStore         = remote.MountRedisIPStore(redisClient, "pre_pool")
+	accessableStore = remote.MountRedisIPStore(redisClient, "accessable_pool")
 
 	proxyRemoteStore, _           = remote.NewProxyRemoteStoreTimeout(nsjHost, 0, ipStore, timeout)
 	accessableProxyRemoteStore, _ = remote.NewProxyRemoteStoreTimeout(nsjHost, 0, accessableStore, timeout)
-
-	redisClient redis.Conn
 )
 
 func makeNsjOpts(r *remote.ProxyRemote, store *remote.RedisIPStore) []remote.Option {
@@ -131,10 +130,16 @@ type Detail struct {
 }
 
 func getMaxPraize() (max, second, self int, err error) {
-	r, err := accessableProxyRemoteStore.New()
+	r, err := accessableProxyRemoteStore.Get()
 	if err != nil {
 		log.Println("Error-accessableProxyRemoteStore:", err)
 		// return
+		if r == nil {
+			log.Println("error in rs.store.Get()")
+			return
+		} else {
+			log.Println("error in NewProxyRemoteTimeout")
+		}
 	}
 	req := map[string]interface{}{
 		"labelPO": map[string]interface{}{
@@ -188,7 +193,7 @@ func doit(num int) {
 		log.Println("开始第", i+1)
 
 		var err error
-		r, _ := accessableProxyRemoteStore.New()
+		r, _ := accessableProxyRemoteStore.Get()
 
 		// 获取token
 		req := map[string]interface{}{}
@@ -353,10 +358,12 @@ func main() {
 	var err error
 	var targetDistance = 10 // 要保证10个点赞的差距
 
-	redisClient, err = redis.Dial("tcp", redisHost, redis.DialPassword(redisPwd))
-	if err != nil {
-		panic(err)
-	}
+	// accessableStore.Clear()
+	accessableStore.Save(&remote.ProxyInfo{
+		IP:       "218.60.8.99",
+		Port:     "3129",
+		Protocol: "http",
+	})
 
 	ipStore.Clear()
 	// log.Println(err)
@@ -367,7 +374,7 @@ func main() {
 	// accessableStore.ClearBad()
 	// log.Println(err)
 	// initIPStore([]int{ipPage})
-	initAccessablePool(5, ipPage)
+	go initAccessablePool(5, ipPage)
 
 	var max, second, self int
 
