@@ -70,10 +70,12 @@ func InitXiCiIppool(pages []int, pt XiciProxyType, store Ipstore, proxy string, 
 		response, err := client.Do(request)
 		if err != nil || response.StatusCode != 200 {
 			log.Println("遇到错误：", count, response.Status, err)
-			newProxy, _ := store.Get()
-			if newProxy == nil || newProxy.IP != "" && count <= 3 {
+			if count <= 3 {
+				newProxy, _ := store.Get()
 				proxy = newProxy.Host()
 				goto GETRESP
+			} else {
+				return err
 			}
 		}
 

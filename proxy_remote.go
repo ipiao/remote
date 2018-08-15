@@ -24,6 +24,9 @@ type ProxyInfo struct {
 
 // Host return host
 func (info *ProxyInfo) Host() string {
+	if info == nil {
+		return ""
+	}
 	return info.Protocol + "://" + info.IP + ":" + info.Port
 }
 
