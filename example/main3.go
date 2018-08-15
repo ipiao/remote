@@ -369,8 +369,8 @@ func main() {
 
 	// accessableStore.Clear()
 	ipStore.Save(&remote.ProxyInfo{
-		IP:       "218.60.8.99",
-		Port:     "3129",
+		IP:       "220.191.64.144",
+		Port:     "9000",
 		Protocol: "http",
 	})
 	// log.Println(err)
