@@ -19,9 +19,9 @@ var (
 	nsjHost   = "https://nsj-m.yy0578.com"
 	redisHost = "118.25.7.38:6379"
 	redisPwd  = ""
-	did       = 654
-	posterId  = 10000007
-	ipPage    = 4
+	did       = 433      // 654
+	posterId  = 10000086 // 10000007
+	ipPage    = 5
 
 	redisClient     = redis.NewClient(&redis.Options{Addr: redisHost, Password: redisPwd})
 	ipStore         = remote.MountRedisIPStore(redisClient, "pre_pool")
@@ -313,7 +313,7 @@ func realdo(r *remote.ProxyRemote) {
 			// 点赞
 			req := map[string]interface{}{
 				"praisesRelation": map[string]interface{}{
-					"detailsId":   654,
+					"detailsId":   did,
 					"praisesType": 1,
 				},
 			}
