@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/rand"
 	"strconv"
 	"sync"
 	"time"
@@ -28,6 +29,7 @@ var (
 
 	proxyRemoteStore, _           = remote.NewProxyRemoteStoreTimeout(nsjHost, 0, ipStore, timeout)
 	accessableProxyRemoteStore, _ = remote.NewProxyRemoteStoreTimeout(nsjHost, 0, accessableStore, timeout)
+	dochan                        = make(chan *SuccessInfo, 99)
 )
 
 func makeNsjOpts(r *remote.ProxyRemote, store *remote.RedisIPStore) []remote.Option {
@@ -187,6 +189,15 @@ func getMaxPraize() (max, second, self int, err error) {
 	return
 }
 
+type SuccessInfo struct {
+	Phone    string
+	AuthKey  string
+	Uid      int
+	NickName string
+	Comment  string
+	SmsCode  string
+}
+
 func doit(num int) {
 
 	for i := 0; i < num; i++ {
@@ -266,6 +277,16 @@ func doit(num int) {
 									}
 								}
 							}
+
+							// 传递
+							info := SuccessInfo{
+								Phone:   phone,
+								AuthKey: authKey,
+								Uid:     uid,
+								SmsCode: smsCode,
+							}
+							dochan <- &info
+
 							wg.Done()
 							break OUT
 						}
@@ -276,81 +297,105 @@ func doit(num int) {
 		wg.Wait()
 		log.Println("---------------------------------------------------------------------------")
 
-		// 点赞
-		req = map[string]interface{}{
-			"praisesRelation": map[string]interface{}{
-				"detailsId":   654,
-				"praisesType": 1,
-			},
-		}
-		request1, err := r.CovertRequest("POST", "/v1/bbs/addPraise", createRequest(req))
-		if err != nil {
-			log.Println("addPraise CovertRequest error:", err)
-		}
-		request1.Header.Set("authkey", authKey)
-		bs, err := r.CallRequest(request1)
-		if err != nil {
-			log.Println("CallRequest:", err)
-		}
-		err = remote.DeJSON(bs, &ret)
-		if err != nil {
-			log.Println(err)
-		}
-		log.Println("addPraise return:", ret)
+		time.Sleep(time.Second * 10)
+	}
+}
 
-		// 评论
-		comment := getComment()
-		req = map[string]interface{}{
-			"comment": map[string]interface{}{
-				"detailsId":   did,
-				"commentText": comment,
-			},
-			"posterId": posterId,
-		}
-		request2, err := r.CovertRequest("POST", "/v1/bbs/addComment", createRequest(req))
-		if err != nil {
-			log.Println(err)
-		}
-		request2.Header.Set("authkey", authKey)
-		bs, err = r.CallRequest(request2)
-		if err != nil {
-			log.Println(ret)
-		}
-		err = remote.DeJSON(bs, &ret)
-		if err != nil {
-			log.Println(err)
-		}
-		log.Println("addComment return:", ret)
-
-		// 改名
-		nickName := getNickName()
-		if nickName != "" {
-			req = map[string]interface{}{
-				"uid":      uid,
-				"sex":      strconv.Itoa(i / 2),
-				"nickName": nickName,
+// 点赞评论一套带走
+func realdo(r *remote.ProxyRemote) {
+	for {
+		select {
+		case info := <-dochan:
+			if r == nil {
+				r, _ = accessableProxyRemoteStore.Get()
 			}
-			request3, err := r.CovertRequest("POST", "/v1/userAccount/updateUserInfoById", createRequest(req))
+			ret := make(map[string]interface{})
+			// 点赞
+			req := map[string]interface{}{
+				"praisesRelation": map[string]interface{}{
+					"detailsId":   654,
+					"praisesType": 1,
+				},
+			}
+			request1, err := r.CovertRequest("POST", "/v1/bbs/addPraise", createRequest(req))
+			if err != nil {
+				log.Println("addPraise CovertRequest error:", err)
+			}
+			request1.Header.Set("authkey", info.AuthKey)
+			bs, err := r.CallRequest(request1)
+			if err != nil {
+				log.Println("CallRequest:", err)
+			}
+			err = remote.DeJSON(bs, &ret)
 			if err != nil {
 				log.Println(err)
 			}
-			request3.Header.Set("authkey", authKey)
-			bs, err = r.CallRequest(request3)
+			log.Println("addPraise return:", ret)
+
+			// 评论
+			comment := getComment()
+			req = map[string]interface{}{
+				"comment": map[string]interface{}{
+					"detailsId":   did,
+					"commentText": comment,
+				},
+				"posterId": posterId,
+			}
+
+			request2, err := r.CovertRequest("POST", "/v1/bbs/addComment", createRequest(req))
+			if err != nil {
+				log.Println(err)
+				dochan <- info
+				return
+			}
+			request2.Header.Set("authkey", info.AuthKey)
+			bs, err = r.CallRequest(request2)
 			if err != nil {
 				log.Println(ret)
 			}
 			err = remote.DeJSON(bs, &ret)
 			if err != nil {
 				log.Println(err)
+				dochan <- info
+				return
 			}
-			log.Println("updateUserInfoById return:", ret)
+			log.Println("addComment return:", ret)
+
+			// 改名
+			nickName := getNickName()
+			if nickName != "" {
+				req = map[string]interface{}{
+					"uid":      info.Uid,
+					"sex":      strconv.Itoa(rand.Int() % 2),
+					"nickName": nickName,
+				}
+				request3, err := r.CovertRequest("POST", "/v1/userAccount/updateUserInfoById", createRequest(req))
+				if err != nil {
+					log.Println(err)
+				}
+				request3.Header.Set("authkey", info.AuthKey)
+				bs, err = r.CallRequest(request3)
+				if err != nil {
+					log.Println(ret)
+				}
+				err = remote.DeJSON(bs, &ret)
+				if err != nil {
+					log.Println(err)
+					dochan <- info
+					return
+				}
+				log.Println("updateUserInfoById return:", ret)
+			}
+
+			info.NickName = nickName
+			info.Comment = comment
+			ssyt := fmt.Sprintf("phone:%s, authKey:%s, uid:%d, nickName:%s, comment:%s smscode:%s",
+				info.Phone, info.AuthKey, info.Uid, nickName, comment, info.SmsCode)
+			storeResource("success_tries", ssyt)
+
+			log.Println(ssyt)
+			time.Sleep(time.Second * time.Duration(rand.Intn(30)+30))
 		}
-
-		ssyt := fmt.Sprintf("phone:%s, authKey:%s, uid:%d, nickName:%s, comment:%s", phone, authKey, uid, nickName, comment)
-		storeResource("success_tries", ssyt)
-
-		log.Println(ssyt)
-		time.Sleep(time.Second * 10)
 	}
 }
 
@@ -382,6 +427,7 @@ func main() {
 	// log.Println(err)
 	// initIPStore([]int{ipPage})
 	go initAccessablePool(5, ipPage)
+	go realdo(nil)
 
 	var max, second, self int
 
