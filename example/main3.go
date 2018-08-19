@@ -424,7 +424,7 @@ func main3() {
 	// log.Println(err)
 	// accessableStore.Clear()
 	// log.Println(err)
-	// accessableStore.ClearBad()
+	// accessableStore.ClearBad()C
 	// log.Println(err)
 	// initIPStore([]int{ipPage})
 	// go initAccessablePool(1, ipPage)

@@ -124,6 +124,13 @@ func initNickNameStore(page int) error {
 func initCommentStore(page int) error {
 
 	url := "https://www.juzimi.com/todayhot?page=" + strconv.Itoa(page)
+	// func main() {
+	// 	initCommentStore(0)
+	// }
+
+	// func initCommentStore(page int) error {
+
+	// 	url := "https://www.juzimi.com/article/%E7%BA%A2%E6%A5%BC%E6%A2%A6?page=" + strconv.Itoa(commentPage)
 	request, _ := http.NewRequest("GET", url, nil)
 	request.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
 
