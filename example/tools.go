@@ -17,8 +17,8 @@ var (
 	usedNickNameKey = "used_nick_name"
 	nickNameKey     = "nick_name"
 	commentKey      = "comment"
-	nickNamePage    = 4
-	commentPage     = 4
+	nickNamePage    = 12
+	commentPage     = 14
 )
 
 func storeResource(key, val string) error {
@@ -156,9 +156,18 @@ func getComment() string {
 		initCommentStore(commentPage)
 		return getComment()
 	}
+
+	storeResource(commentKey, comment)
+	return comment
+
+	// comments := []string{"不必太张扬 是花自然香", "美美美", "你最美", "第一是你的", "余生还长 善待自己 继续善良"}
+
+	// r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	// len := len(comments)
+	// comment := comments[r.Intn(len)]
 	// if isUsedResource(commentKey, comment) {
 	// 	return getComment()
 	// }
-	// storeResource(usedNickNameKey, name)
-	return comment
+	// storeResource(commentKey, comment)
+	// return comment
 }

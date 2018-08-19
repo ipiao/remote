@@ -19,9 +19,9 @@ var (
 	nsjHost   = "https://nsj-m.yy0578.com"
 	redisHost = "118.25.7.38:6379"
 	redisPwd  = ""
-	did       = 433      // 654
-	posterId  = 10000086 // 10000007
-	ipPage    = 5
+	did       = 654
+	posterId  = 10000007
+	ipPage    = 1
 
 	redisClient     = redis.NewClient(&redis.Options{Addr: redisHost, Password: redisPwd})
 	ipStore         = remote.MountRedisIPStore(redisClient, "pre_pool")
@@ -138,7 +138,7 @@ func getMaxPraize() (max, second, self int, err error) {
 		// return
 		if r == nil {
 			log.Println("error in rs.store.Get()")
-			return
+			// return
 		} else {
 			log.Println("error in NewProxyRemoteTimeout")
 		}
@@ -403,21 +403,20 @@ func main() {
 	var err error
 	var targetDistance = 10 // 要保证10个点赞的差距
 
-	// accessableStore.Clear()
-	accessableStore.Save(&remote.ProxyInfo{
-		IP:       "218.60.8.99",
-		Port:     "3129",
-		Protocol: "http",
-	})
+	accessableStore.Clear()
+	// accessableStore.Save(&remote.ProxyInfo{
+	// 	IP:       "218.60.8.99",
+	// 	Port:     "3129",
+	// 	Protocol: "http",
+	// })
 
-	ipStore.Clear()
+	// ipStore.Clear()
 
-	// accessableStore.Clear()
-	ipStore.Save(&remote.ProxyInfo{
-		IP:       "220.191.64.144",
-		Port:     "9000",
-		Protocol: "http",
-	})
+	// ipStore.Save(&remote.ProxyInfo{
+	// 	IP:       "220.191.64.144",
+	// 	Port:     "9000",
+	// 	Protocol: "http",
+	// })
 	// log.Println(err)
 	// err = ipStore.ClearBad()
 	// log.Println(err)
@@ -426,7 +425,7 @@ func main() {
 	// accessableStore.ClearBad()
 	// log.Println(err)
 	// initIPStore([]int{ipPage})
-	go initAccessablePool(5, ipPage)
+	// go initAccessablePool(5, ipPage)
 	go realdo(nil)
 
 	var max, second, self int

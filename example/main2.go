@@ -2,9 +2,9 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"log"
-	"os"
 	"sync"
 	"time"
 
@@ -68,158 +68,187 @@ func main1() {
 
 func main2() {
 
-	f, err1 := os.Create(fmt.Sprintf("user_%d", time.Now().Unix()))
-	if err1 != nil {
-		panic(err1)
+	comment := flag.String("m", "保持队形，送小姐姐上第一", "")
+	proxyip := flag.String("p_ip", "", "")
+	proxyProtocol := flag.String("p_p", "", "")
+	proxyport := flag.String("p_port", "", "")
+
+	flag.Parse()
+
+	var pi *remote.ProxyInfo
+
+	if len(*proxyip) > 0 {
+		pi = &remote.ProxyInfo{
+			IP:       *proxyip,
+			Port:     *proxyport,
+			Protocol: *proxyProtocol,
+		}
 	}
-	defer f.Close()
 
-	for i, user := range users {
+	var err error
+	r := remote.NewProxyRemote("https://nsj-m.yy0578.com", pi)
+	// r := remote.NewRemote("https://nsj-m.yy0578.com")
 
-		defer func() {
-			b, _ := remote.EnJSON(users[i])
-			f.Write(b)
-			f.Write([]byte{'\n'})
-		}()
+	// 获取token
+	req := map[string]interface{}{}
+	ret := make(map[string]interface{})
+	// err = r.Post("/v2/imagescode/gettokennum", req, &ret)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// log.Println("gettokennum:", ret)
+	// token := ret["Token"].(string)
+	token := "KOn189bBNmbo-DALJ9dGE53MK3FANl5A9_hFB7dcS4EtWrvmtLH8G34fow3tjTfRvH_F4lOJBD-qgr4Jyn0akxe61AJiDHpegfmJssy_jVk="
 
-		var err error
-		r := remote.NewProxyRemote("https://nsj-m.yy0578.com", accessalbeProxys[0])
-		// r := remote.NewRemote("https://nsj-m.yy0578.com")
+	// 发送短信
+	phone := getPhone()
+	req = map[string]interface{}{
+		"deviceId":    "A0644CSC-5FFB-431B-DFD1-323C2F34537D",
+		"appVersion":  "1.0.2",
+		"deviceName":  "iPhone10.2(iOS11.4)",
+		"code":        "3155",
+		"smsCodeType": 1,
+		"deviceType":  "2",
+		"mobilePhone": phone,
+		"token":       token,
+	}
+	err = r.Post("/v1/smsController/sendVerifyCode", req, &ret)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	log.Println("sendVerifyCode", ret)
+	time.Sleep(time.Second * 2)
+	// 刷登录接口
+	var authKey string
+	var uid int
 
-		// 获取token
-		req := map[string]interface{}{}
-		ret := make(map[string]interface{})
-		// err = r.Post("/v2/imagescode/gettokennum", req, &ret)
-		// if err != nil {
-		// 	panic(err)
-		// }
-		// log.Println("gettokennum:", ret)
-		// token := ret["Token"].(string)
-		token := "KOn189bBNmbo-DALJ9dGE53MK3FANl5A9_hFB7dcS4EtWrvmtLH8G34fow3tjTfRvH_F4lOJBD-qgr4Jyn0akxe61AJiDHpegfmJssy_jVk="
-
-		// 发送短信
-		phone := user.Phone
-		req = map[string]interface{}{
-			"deviceId":    "A0644CSC-5FFB-431B-DFD1-323C2F34537D",
-			"appVersion":  "1.0.2",
-			"deviceName":  "iPhone10.2(iOS11.4)",
-			"code":        "3155",
-			"smsCodeType": 1,
-			"deviceType":  "2",
-			"mobilePhone": phone,
-			"token":       token,
-		}
-		err = r.Post("/v1/smsController/sendVerifyCode", req, &ret)
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		log.Println("sendVerifyCode", ret)
-		time.Sleep(time.Second * 2)
-		// 刷登录接口
-		var authKey string
-		var uid int
-
-		gonums := 100
-		done := make(chan int, gonums-1)
-		wg := sync.WaitGroup{}
-		for i := 0; i < gonums; i++ {
-			wg.Add(1)
-			go func(c int) {
-				nr := remote.NewProxyRemote("https://nsj-m.yy0578.com", accessalbeProxys[0])
-				for j := 0; j < 10000/gonums; j++ {
-					select {
-					case <-done:
-						wg.Done()
-						return
-					case <-time.After(time.Millisecond * 5):
-						smsCode := fmt.Sprintf("%04d", c*10000/gonums+j)
-						log.Println(smsCode)
-						nreq := map[string]interface{}{
-							"deviceName":          "iPhone10.2(iOS11.4)",
-							"loginAccount":        phone,
-							"deviceId":            "A0644CSC-5FFB-431B-DFD1-323C2F34537D",
-							"smsVerificationCode": smsCode,
-							"appVersion":          "1.0.2",
-							"deviceType":          "2",
+	gonums := 50
+	done := make(chan int, gonums-1)
+	wg := sync.WaitGroup{}
+	for i := 0; i < gonums; i++ {
+		wg.Add(1)
+		go func(c int) {
+			nr := remote.NewProxyRemote("https://nsj-m.yy0578.com", accessalbeProxys[0])
+		OUT:
+			for j := 0; j < 10000/gonums; j++ {
+				select {
+				case <-done:
+					wg.Done()
+					break OUT
+				case <-time.After(time.Millisecond * 5):
+					smsCode := fmt.Sprintf("%04d", c*10000/gonums+j)
+					log.Println(smsCode)
+					nreq := map[string]interface{}{
+						"loginAccount":        phone,
+						"smsVerificationCode": smsCode,
+					}
+					nret := map[string]interface{}{}
+					err = nr.Post("/v1/userAccount/login", createRequest(nreq), &nret)
+					if err != nil {
+						log.Println("login err:", err)
+						continue
+					}
+					if ak, ok := nret["authkey"]; ok {
+						authKey = ak.(string)
+						for k := 0; k < gonums-1; k++ {
+							done <- k
 						}
-						nret := map[string]interface{}{}
-						err = nr.Post("/v1/userAccount/login", nreq, &nret)
-						if err != nil {
-							// log.Println("login err:", err)
-							continue
-						}
-						if ak, ok := nret["authkey"]; ok {
-							authKey = ak.(string)
-							user.Authkey = authKey
-							wg.Done()
-							for k := 0; k < gonums; k++ {
-								done <- k
-							}
-							log.Println("login success:", nret)
+						log.Println("login success:", nret)
+						log.Println("login smsCode:", smsCode)
 
-							if acc, ok1 := nret["userAccount"]; ok1 {
-								if accM, ok2 := acc.(map[string]interface{}); ok2 {
-									if uidStr, ok3 := accM["id"]; ok3 {
-										id, _ := uidStr.(json.Number).Int64()
-										uid = int(id)
-									}
+						if acc, ok1 := nret["userAccount"]; ok1 {
+							if accM, ok2 := acc.(map[string]interface{}); ok2 {
+								if uidStr, ok3 := accM["id"]; ok3 {
+									id, _ := uidStr.(json.Number).Int64()
+									uid = int(id)
 								}
 							}
-							return
 						}
-						// log.Println("login return:", nret)
+
+						wg.Done()
+
+						break OUT
 					}
+					// log.Println("login return:", nret)
 				}
-			}(i)
-		}
-		wg.Wait()
-		log.Println("---------------------------------------------------------------------------")
+			}
+		}(i)
+	}
+	wg.Wait()
+	log.Println("---------------------------------------------------------------------------")
 
-		// 点赞
+	// 点赞
+	req = map[string]interface{}{
+		"deviceName": "iPhone10.2(iOS11.4)",
+		"deviceId":   "A0644CSC-5FFB-431B-DFD1-323C2F34537D",
+		"appVersion": "1.0.2",
+		"praisesRelation": map[string]interface{}{
+			"detailsId":   654,
+			"praisesType": 1,
+		},
+		"deviceType": "2",
+	}
+	request1, err := r.CovertRequest("POST", "/v1/bbs/addPraise", req)
+	if err != nil {
+		log.Println("addPraise CovertRequest error:", err)
+	}
+	request1.Header.Set("authkey", authKey)
+	bs, err := r.CallRequest(request1)
+	if err != nil {
+		log.Println("CallRequest:", err)
+	}
+	err = remote.DeJSON(bs, &ret)
+	if err != nil {
+		log.Println(err)
+	}
+	log.Println("addPraise return:", ret)
+
+	// 评论
+	req = map[string]interface{}{
+		"deviceName": "iPhone10.2(iOS11.4)",
+		"deviceId":   "A0644CSC-5FFB-431B-DFD1-323C2F34537D",
+		"comment": map[string]interface{}{
+			"detailsId":   654,
+			"commentText": *comment,
+		},
+		"posterId":   10000007,
+		"appVersion": "1.0.2",
+		"deviceType": "2",
+	}
+	request2, err := r.CovertRequest("POST", "/v1/bbs/addComment", req)
+	if err != nil {
+		log.Println(err)
+	}
+	request2.Header.Set("authkey", authKey)
+	bs, err = r.CallRequest(request2)
+	if err != nil {
+		log.Println(ret)
+	}
+	err = remote.DeJSON(bs, &ret)
+	if err != nil {
+		log.Println(err)
+	}
+	log.Println("addComment return:", ret)
+
+	// 改名
+	nickName := getNickName()
+	if nickName != "" {
 		req = map[string]interface{}{
-			"deviceName": "iPhone10.2(iOS11.4)",
-			"deviceId":   "A0644CSC-5FFB-431B-DFD1-323C2F34537D",
+			"deviceId":   "4D5535B3-5371-48FC-884C-439A2E493EFF",
+			"uid":        uid,
 			"appVersion": "1.0.2",
-			"praisesRelation": map[string]interface{}{
-				"detailsId":   654,
-				"praisesType": 1,
-			},
+			"deviceName": "iPhone9.2(iOS12.0)",
 			"deviceType": "2",
+			"sex":        "1",
+			"nickName":   nickName,
 		}
-		request1, err := r.CovertRequest("POST", "/v1/bbs/addPraise", req)
-		if err != nil {
-			log.Println("addPraise CovertRequest error:", err)
-		}
-		request1.Header.Set("authkey", authKey)
-		bs, err := r.CallRequest(request1)
-		if err != nil {
-			log.Println("CallRequest:", err)
-		}
-		err = remote.DeJSON(bs, &ret)
+		request3, err := r.CovertRequest("POST", "/v1/userAccount/updateUserInfoById", req)
 		if err != nil {
 			log.Println(err)
 		}
-		log.Println("addPraise return:", ret)
-
-		// 评论
-		req = map[string]interface{}{
-			"deviceName": "iPhone10.2(iOS11.4)",
-			"deviceId":   "A0644CSC-5FFB-431B-DFD1-323C2F34537D",
-			"comment": map[string]interface{}{
-				"detailsId":   654,
-				"commentText": user.Comment,
-			},
-			"posterId":   10000007,
-			"appVersion": "1.0.2",
-			"deviceType": "2",
-		}
-		request2, err := r.CovertRequest("POST", "/v1/bbs/addComment", req)
-		if err != nil {
-			log.Println(err)
-		}
-		request2.Header.Set("authkey", authKey)
-		bs, err = r.CallRequest(request2)
+		request3.Header.Set("authkey", authKey)
+		bs, err = r.CallRequest(request3)
 		if err != nil {
 			log.Println(ret)
 		}
@@ -227,40 +256,11 @@ func main2() {
 		if err != nil {
 			log.Println(err)
 		}
-		log.Println("addComment return:", ret)
-
-		// 改名
-		if user.NickName != "" {
-			req = map[string]interface{}{
-				"deviceId":   "4D5535B3-5371-48FC-884C-439A2E493EFF",
-				"uid":        uid,
-				"appVersion": "1.0.2",
-				"deviceName": "iPhone9.2(iOS12.0)",
-				"deviceType": "2",
-				"sex":        "1",
-				"nickName":   user.NickName,
-			}
-			request3, err := r.CovertRequest("POST", "/v1/userAccount/updateUserInfoById", req)
-			if err != nil {
-				log.Println(err)
-			}
-			request3.Header.Set("authkey", authKey)
-			bs, err = r.CallRequest(request3)
-			if err != nil {
-				log.Println(ret)
-			}
-			err = remote.DeJSON(bs, &ret)
-			if err != nil {
-				log.Println(err)
-			}
-			user.Success = true
-			log.Println("updateUserInfoById return:", ret)
-		}
-
-		log.Println(phone, authKey, uid)
-
-		time.Sleep(time.Second * 10)
+		log.Println("updateUserInfoById return:", ret)
 	}
+
+	log.Println(phone, authKey, uid)
+
 }
 
 func getFirstOne() {
