@@ -401,16 +401,16 @@ func realdo(r *remote.ProxyRemote) {
 	}
 }
 
-func main3() {
+func main() {
 	var err error
 	var targetDistance = 15 // 要保证10个点赞的差距
 
-	accessableStore.Clear()
-	// accessableStore.Save(&remote.ProxyInfo{
-	// 	IP:       "103.206.253.82",
-	// 	Port:     "8080",
-	// 	Protocol: "https",
-	// })
+	// accessableStore.Clear()
+	accessableStore.Save(&remote.ProxyInfo{
+		IP:       "124.193.37.5",
+		Port:     "8888",
+		Protocol: "https",
+	})
 
 	ipStore.Clear()
 

@@ -66,7 +66,7 @@ func main1() {
 
 }
 
-func main() {
+func main11() {
 
 	comment := flag.String("m", "保持队形，送小姐姐上第一", "")
 	mp := flag.Int("mp", 12, "")
