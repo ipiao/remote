@@ -20,12 +20,16 @@ type ProxyInfo struct {
 	Protocol     string
 	SurvivalTime string
 	CheckTime    string
+	host         string
 }
 
 // Host return host
 func (info *ProxyInfo) Host() string {
 	if info == nil {
 		return ""
+	}
+	if len(info.host) > 0 {
+		return info.host
 	}
 	return info.Protocol + "://" + info.IP + ":" + info.Port
 }
@@ -83,6 +87,7 @@ func (s *RedisIPStore) Save(info *ProxyInfo, opts ...Option) error {
 		return err
 	}
 	host := info.Host()
+	info.host = host
 	infoStr := string(infoBytes)
 
 	err = s.cli.Watch(func(tx *redis.Tx) error {
@@ -209,6 +214,19 @@ func (r *ProxyRemote) ProxyInfo() *ProxyInfo {
 // NewProxyRemote 代理
 func NewProxyRemote(host string, proxy *ProxyInfo) *ProxyRemote {
 	return NewProxyRemoteTimeout(host, proxy, defaultTimeOut)
+}
+
+// NewProxyRemote 代理
+func NewProxyRemote2(host, proxy string) *ProxyRemote {
+	var pi *ProxyInfo
+
+	if len(proxy) > 0 {
+		pi = &ProxyInfo{
+			host: proxy,
+		}
+	}
+
+	return NewProxyRemoteTimeout(host, pi, defaultTimeOut)
 }
 
 // NewProxyRemoteTimeout 代理

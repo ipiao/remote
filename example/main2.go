@@ -72,9 +72,7 @@ func main() {
 	mp := flag.Int("mp", 12, "")
 	name := flag.String("n", "", "")
 	np := flag.Int("np", 4, "")
-	proxyip := flag.String("p_ip", "", "")
-	proxyProtocol := flag.String("p_p", "", "")
-	proxyport := flag.String("p_port", "", "")
+	proxy := flag.String("p", "", "")
 
 	flag.Parse()
 
@@ -83,16 +81,8 @@ func main() {
 
 	var pi *remote.ProxyInfo
 
-	if len(*proxyip) > 0 {
-		pi = &remote.ProxyInfo{
-			IP:       *proxyip,
-			Port:     *proxyport,
-			Protocol: *proxyProtocol,
-		}
-	}
-
 	var err error
-	r := remote.NewProxyRemote("https://nsj-m.yy0578.com", pi)
+	r := remote.NewProxyRemote2("https://nsj-m.yy0578.com", *proxy)
 	// r := remote.NewRemote("https://nsj-m.yy0578.com")
 
 	// 获取token
@@ -135,7 +125,7 @@ func main() {
 	for i := 0; i < gonums; i++ {
 		wg.Add(1)
 		go func(c int) {
-			nr := remote.NewProxyRemote("https://nsj-m.yy0578.com", accessalbeProxys[0])
+			nr := remote.NewProxyRemote("https://nsj-m.yy0578.com", pi)
 		OUT:
 			for j := 0; j < 10000/gonums; j++ {
 				select {
