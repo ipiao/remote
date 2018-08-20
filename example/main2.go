@@ -66,14 +66,20 @@ func main1() {
 
 }
 
-func main2() {
+func main() {
 
 	comment := flag.String("m", "保持队形，送小姐姐上第一", "")
+	mp := flag.Int("mp", 12, "")
+	name := flag.String("n", "", "")
+	np := flag.Int("np", 4, "")
 	proxyip := flag.String("p_ip", "", "")
 	proxyProtocol := flag.String("p_p", "", "")
 	proxyport := flag.String("p_port", "", "")
 
 	flag.Parse()
+
+	commentPage = *mp
+	logoPage = *np
 
 	var pi *remote.ProxyInfo
 
@@ -232,7 +238,11 @@ func main2() {
 	log.Println("addComment return:", ret)
 
 	// 改名
-	nickName := getNickName()
+	nickName := *name
+	if len(nickName) == 0 {
+		nickName = getNickName()
+	}
+	avatar := getAvatarUrl()
 	if nickName != "" {
 		req = map[string]interface{}{
 			"deviceId":   "4D5535B3-5371-48FC-884C-439A2E493EFF",
@@ -242,6 +252,7 @@ func main2() {
 			"deviceType": "2",
 			"sex":        "1",
 			"nickName":   nickName,
+			"avatarUrl":  avatar,
 		}
 		request3, err := r.CovertRequest("POST", "/v1/userAccount/updateUserInfoById", req)
 		if err != nil {

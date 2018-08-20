@@ -14,9 +14,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/ipiao/remote"
-
 	"github.com/PuerkitoBio/goquery"
+	"github.com/ipiao/remote"
 )
 
 var (
@@ -25,9 +24,9 @@ var (
 	nickNameKey     = "nick_name"
 	commentKey      = "comment"
 	logoKey         = "avatar"
-	nickNamePage    = 12
+	nickNamePage    = 13
 	commentPage     = 2
-	logoPage        = 1
+	logoPage        = 4
 )
 
 func storeResource(key, val string) error {
@@ -36,6 +35,14 @@ func storeResource(key, val string) error {
 		log.Println("Error-storeUsedResource:", err)
 	}
 	return err
+}
+
+func getAllResource(key string) []string {
+	res, err := redisClient.SMembers(key).Result()
+	if err != nil {
+		log.Println("Error-storeUsedResource:", err)
+	}
+	return res
 }
 
 func cardResource(key string) int {
@@ -162,13 +169,13 @@ func initCommentStore(page int) error {
 	return nil
 }
 
-func initCommentStore2(page int) error {
+func getComment2() string {
 	r := remote.NewRemote(nsjHost)
 	req := map[string]interface{}{
 		"detailId":    did,
 		"sort":        " asc",
-		"currentPage": page,
-		"limit":       page * 20,
+		"currentPage": rand.Intn(300),
+		"limit":       1,
 		"isPaging":    true,
 		"orderBy":     "create_time",
 	}
@@ -180,26 +187,27 @@ func initCommentStore2(page int) error {
 	err := r.Post("/v1/bbs/queryCommentsList", createRequest(req), &ret)
 	if err != nil {
 		log.Println("queryCommentsList error", err)
-		return err
 	}
-	for _, cm := range ret.CommentsList {
-		log.Println(cm.CommentText)
+	comment := "保持队形，送上第一 +1"
+	if len(ret.CommentsList) > 0 {
+		comment = ret.CommentsList[0].CommentText
 	}
 
 	// log.Println(ret)
-	return nil
+	return comment
 }
 
 func getComment() string {
-	comment, err := popResource(commentKey)
-	if err != nil || comment == "" {
-		commentPage++
-		initCommentStore2(commentPage)
-		return getComment()
-	}
+	// comment, err := popResource(commentKey)
+	// if err != nil || comment == "" {
+	// 	commentPage++
+	// 	// initCommentStore2(commentPage)
+	// 	return getComment()
+	// }
 
-	storeResource(commentKey, comment)
-	return comment
+	// storeResource(commentKey, comment)
+	// return comment
+	return getComment2()
 
 	// comments := []string{"不必太张扬 是花自然香", "美美美", "你最美", "第一是你的", "余生还长 善待自己 继续善良"}
 
@@ -213,8 +221,34 @@ func getComment() string {
 	// return comment
 }
 
-func main() {
-	initCommentStore2(2)
+// func main() {
+// 	// initCommentStore2(2)
+// 	log.Println(getComment())
+// }
+
+func resetLogos() {
+
+	// req = map[string]interface{}{
+	// 	"uid":       info.Uid,
+	// 	"sex":       strconv.Itoa(rand.Int() % 2),
+	// 	"nickName":  nickName,
+	// 	"avatarUrl": avatarUrl,
+	// }
+	// request3, err := r.CovertRequest("POST", "/v1/userAccount/updateUserInfoById", createRequest(req))
+	// if err != nil {
+	// 	log.Println(err)
+	// }
+	// request3.Header.Set("authkey", info.AuthKey)
+	// bs, err = r.CallRequest(request3)
+	// if err != nil {
+	// 	log.Println(ret)
+	// }
+	// err = remote.DeJSON(bs, &ret)
+	// if err != nil {
+	// 	log.Println(err)
+	// 	dochan <- info
+	// 	return
+	// }
 }
 
 func initLogo(page int) error {
