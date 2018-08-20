@@ -24,9 +24,9 @@ var (
 	nickNameKey     = "nick_name"
 	commentKey      = "comment"
 	logoKey         = "avatar"
-	nickNamePage    = 15
+	nickNamePage    = 19
 	commentPage     = 21
-	logoPage        = 10
+	logoPage        = 13
 )
 
 func storeResource(key, val string) error {
@@ -174,7 +174,7 @@ func getComment2() string {
 	req := map[string]interface{}{
 		"detailId":    did,
 		"sort":        " asc",
-		"currentPage": rand.Intn(300),
+		"currentPage": rand.Intn(350),
 		"limit":       1,
 		"isPaging":    true,
 		"orderBy":     "create_time",

@@ -249,7 +249,7 @@ func doit(num int) {
 					case <-done:
 						wg.Done()
 						break OUT
-					case <-time.After(time.Millisecond * 5):
+					case <-time.After(time.Millisecond * 50):
 						smsCode := fmt.Sprintf("%04d", c*10000/gonums+j)
 						nreq := map[string]interface{}{
 							"loginAccount":        phone,
@@ -405,14 +405,14 @@ func main() {
 	var err error
 	var targetDistance = 15 // 要保证10个点赞的差距
 
-	// accessableStore.Clear()
-	accessableStore.Save(&remote.ProxyInfo{
-		IP:       "124.193.37.5",
-		Port:     "8888",
-		Protocol: "https",
-	})
+	accessableStore.Clear()
+	// accessableStore.Save(&remote.ProxyInfo{
+	// 	IP:       "124.193.37.5",
+	// 	Port:     "8888",
+	// 	Protocol: "https",
+	// })
 
-	ipStore.Clear()
+	// ipStore.Clear()
 
 	// ipStore.Save(&remote.ProxyInfo{
 	// 	IP:       "58.87.98.150",
@@ -427,7 +427,7 @@ func main() {
 	// accessableStore.ClearBad()C
 	// log.Println(err)
 	// initIPStore([]int{ipPage})
-	// go initAccessablePool(1, ipPage)
+	// go initAccessablePool(5, ipPage)
 	go realdo(nil)
 
 	var max, second, self int
