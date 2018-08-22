@@ -24,9 +24,9 @@ var (
 	nickNameKey     = "nick_name"
 	commentKey      = "comment"
 	logoKey         = "avatar"
-	nickNamePage    = 19
+	nickNamePage    = 8
 	commentPage     = 21
-	logoPage        = 13
+	logoPage        = 5
 )
 
 func storeResource(key, val string) error {
