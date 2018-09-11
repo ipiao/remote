@@ -26,7 +26,7 @@ var (
 	logoKey         = "avatar"
 	nickNamePage    = 8
 	commentPage     = 21
-	logoPage        = 5
+	logoPage        = 1
 )
 
 func storeResource(key, val string) error {
@@ -170,11 +170,14 @@ func initCommentStore(page int) error {
 }
 
 func getComment2() string {
+
+	ids := []int{557, 604, 654}
 	r := remote.NewRemote(nsjHost)
+
 	req := map[string]interface{}{
-		"detailId":    did,
+		"detailId":    ids[rand.Int()%len(ids)],
 		"sort":        " asc",
-		"currentPage": rand.Intn(350),
+		"currentPage": rand.Intn(300),
 		"limit":       1,
 		"isPaging":    true,
 		"orderBy":     "create_time",

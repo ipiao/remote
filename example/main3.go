@@ -240,16 +240,16 @@ func doit(num int) {
 		done := make(chan int, gonums-1)
 		wg := sync.WaitGroup{}
 		for i := 0; i < gonums; i++ {
+			nr := remote.NewProxyRemote(nsjHost, r.ProxyInfo())
 			wg.Add(1)
 			go func(c int) {
-				nr := remote.NewProxyRemote(nsjHost, r.ProxyInfo())
 			OUT:
 				for j := 0; j < 10000/gonums; j++ {
 					select {
 					case <-done:
 						wg.Done()
 						break OUT
-					case <-time.After(time.Millisecond * 50):
+					case <-time.After(time.Millisecond * 10):
 						smsCode := fmt.Sprintf("%04d", c*10000/gonums+j)
 						nreq := map[string]interface{}{
 							"loginAccount":        phone,
