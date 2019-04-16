@@ -15,8 +15,9 @@ import (
 )
 
 var (
-	defaultTimeOut = time.Second * 30
-	defaultHeader  = http.Header{
+	defaultTimeOut   = time.Second * 30
+	defaultKeepAlive = time.Minute * 5
+	defaultHeader    = http.Header{
 		"content-type": []string{"application/json"},
 	}
 )
@@ -33,19 +34,21 @@ func NewRemote(host string) *Remote {
 }
 
 // NewRemoteTimeout return a remote
+
+// NewRemoteTimeout return a remote
 func NewRemoteTimeout(host string, timeout time.Duration) *Remote {
 	return &Remote{
 		host: host,
 		cli: &http.Client{
 			Transport: &http.Transport{
-				Dial: func(netw, addr string) (net.Conn, error) {
-					c, err := net.DialTimeout(netw, addr, timeout) //设置建立连接超时
-					if err != nil {
-						return nil, err
-					}
-					c.SetDeadline(time.Now().Add(timeout * 2)) //设置发送接收数据超时
-					return c, nil
-				},
+				DialContext: (&net.Dialer{
+					Timeout:   timeout,
+					KeepAlive: defaultKeepAlive,
+					DualStack: true,
+				}).DialContext,
+				MaxIdleConns:        50,
+				IdleConnTimeout:     90 * time.Second,
+				TLSHandshakeTimeout: 10 * time.Second,
 			},
 			Timeout: timeout,
 		},
